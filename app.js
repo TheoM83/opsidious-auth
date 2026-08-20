@@ -10,6 +10,8 @@ import { globalLimiter, renderError } from './lib/middleware.js';
 import authorizeRoutes from './routes/authorize.js';
 import callbackRoutes from './routes/callback.js';
 import tokenRoutes from './routes/token.js';
+import wellKnownRoutes from './routes/wellknown.js';
+import accountRoutes from './routes/account.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -63,8 +65,8 @@ app.use(globalLimiter);
 app.use(authorizeRoutes);
 app.use(callbackRoutes);
 app.use(tokenRoutes);
-//   app.use(wellKnownRoutes);   <- Task 13
-//   app.use(accountRoutes);     <- Task 13
+app.use(wellKnownRoutes);
+app.use(accountRoutes);
 
 app.use((req, res) => renderError(res, 404, 'Page introuvable.'));
 

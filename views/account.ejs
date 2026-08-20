@@ -1,0 +1,29 @@
+<section class="panel">
+  <h1>Compte Opsidious</h1>
+  <p class="muted">
+    Vous êtes connecté. Opsidious ne connaît de vous qu’un identifiant Google opaque —
+    ni votre adresse e-mail, ni votre nom.
+  </p>
+
+  <form method="post" action="/logout">
+    <input type="hidden" name="csrf" value="<%= csrf %>" />
+    <button class="btn" type="submit">Se déconnecter</button>
+  </form>
+
+  <hr />
+
+  <h2>Supprimer ce compte</h2>
+  <p class="muted">
+    Vous ne pourrez plus vous connecter à aucune application Opsidious.
+    <strong>Les données que ces applications détiennent ne seront pas effacées</strong> :
+    chacune vous connaît sous un identifiant différent, et Opsidious est incapable de
+    leur dire lequel supprimer. Supprimez d’abord votre compte dans chaque application,
+    puis ici.
+  </p>
+  <form method="post" action="/account/delete">
+    <input type="hidden" name="csrf" value="<%= csrf %>" />
+    <label class="muted" for="confirm">Saisissez SUPPRIMER pour confirmer</label>
+    <input id="confirm" name="confirm" autocapitalize="characters" autocomplete="off" required />
+    <button class="btn danger" type="submit">Supprimer définitivement</button>
+  </form>
+</section>
