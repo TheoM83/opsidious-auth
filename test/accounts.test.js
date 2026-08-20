@@ -36,6 +36,22 @@ test('a later sign-in finds the same account and the same salt', async () => {
   assert.equal((await dbAll('SELECT id FROM accounts')).length, 1);
 });
 
+test('two concurrent first sign-ins for the same new subject agree on one account', async () => {
+  // One person signing into two applications in two tabs: both calls miss the
+  // SELECT and race to INSERT. The loser must fall back to the winner's row
+  // rather than throw on the google_sub_hash UNIQUE constraint.
+  const NEW_SUB = '777777777777777777777';
+  const before = (await dbAll('SELECT id FROM accounts')).length;
+  const [a, b] = await Promise.all([signInWithGoogleSub(NEW_SUB), signInWithGoogleSub(NEW_SUB)]);
+  assert.equal(b.account.id, a.account.id);
+  assert.deepEqual(b.pairwiseSalt, a.pairwiseSalt);
+  assert.equal(
+    (await dbAll('SELECT id FROM accounts')).length,
+    before + 1,
+    'exactly one account row was created across both racing sign-ins'
+  );
+});
+
 test('a different Google account gets a different salt', async () => {
   const a = await signInWithGoogleSub(SUB);
   const b = await signInWithGoogleSub(OTHER);

@@ -119,9 +119,21 @@ test('a failed Google exchange redirects back with an error', async () => {
 
 test('a user who cancels at Google is sent back cleanly', async () => {
   const id = await startFlow();
+  // Prove the cancel path returns before ever contacting Google. A thrown
+  // fetchImpl alone would not distinguish this from a broken implementation
+  // that falls through to a failed exchange - both end in the same
+  // access_denied redirect - so also assert the exchange was never attempted.
+  let contacted = false;
+  __setTransport({
+    fetchImpl: async () => {
+      contacted = true;
+      throw new Error('Google must not be contacted on the cancel path');
+    }
+  });
   const res = await request(app)
     .get('/callback/google')
     .query({ error: 'access_denied', state: id });
+  assert.equal(contacted, false, 'the cancel path must not attempt the Google exchange');
   assert.equal(res.status, 302);
   assert.equal(new URL(res.headers.location).searchParams.get('error'), 'access_denied');
 });

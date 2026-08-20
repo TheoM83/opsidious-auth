@@ -14,20 +14,31 @@ const router = Router();
 router.get('/callback/google', async (req, res, next) => {
   try {
     const requestId = String(req.query.state ?? '');
+    const now = Date.now();
+
+    // Read the row's contents, but let the guarded DELETE below - not this
+    // SELECT - decide who owns it. lib/codes.js uses the same guarded-mutation
+    // pattern (a single UPDATE ... WHERE used = 0) to avoid a SELECT-then-DELETE
+    // window in which two racing requests could both pass the "is this parked?"
+    // gate.
     const parked = await dbGet('SELECT * FROM auth_requests WHERE id = ? AND expires_at > ?', [
       requestId,
-      Date.now()
+      now
     ]);
 
-    // Without the parked request there is no verified redirect URI to answer
+    // One shot, whatever happens next: the DELETE itself is the gate. Only the
+    // caller whose predicates still match a live row wins the race.
+    const { changes } = await dbRun('DELETE FROM auth_requests WHERE id = ? AND expires_at > ?', [
+      requestId,
+      now
+    ]);
+
+    // Without a parked request there is no verified redirect URI to answer
     // on, so this can only be a page, never a redirect.
-    if (!parked) {
+    if (!parked || changes !== 1) {
       console.warn('callback rejected: unknown or expired request');
       return renderError(res, 400, 'Cette demande de connexion a expiré. Recommencez.');
     }
-
-    // One shot, whatever happens next.
-    await dbRun('DELETE FROM auth_requests WHERE id = ?', [requestId]);
 
     if (req.query.error) {
       return redirectBack(res, parked.redirect_uri, {
@@ -56,6 +67,18 @@ router.get('/callback/google', async (req, res, next) => {
     const { account, pairwiseSalt } = await signInWithGoogleSub(googleSub);
     const { cookieValue, session } = await createSession(account.id, pairwiseSalt);
 
+    const code = await issueCode({
+      appSub: pairwiseSubject(pairwiseSalt, parked.client_id),
+      clientId: parked.client_id,
+      redirectUri: parked.redirect_uri,
+      nonce: parked.nonce,
+      ssoSessionId: session.id
+    });
+
+    // Staged only once nothing else can fail: if issueCode had thrown after the
+    // cookie was staged, Express would still flush the Set-Cookie header on the
+    // 500 page, leaving the browser signed in while the client app never gets
+    // a code.
     res.cookie(SSO_COOKIE_NAME, cookieValue, {
       httpOnly: true,
       // Unconditional: a `__Host-` cookie without Secure is rejected outright
@@ -67,14 +90,6 @@ router.get('/callback/google', async (req, res, next) => {
       maxAge: SSO_TTL_MS
       // Deliberately no `domain`: __Host- forbids it, and a parent-domain
       // cookie would be readable by every sibling subdomain (spec §2).
-    });
-
-    const code = await issueCode({
-      appSub: pairwiseSubject(pairwiseSalt, parked.client_id),
-      clientId: parked.client_id,
-      redirectUri: parked.redirect_uri,
-      nonce: parked.nonce,
-      ssoSessionId: session.id
     });
 
     console.info(`sign-in completed for client ${parked.client_id}`);
