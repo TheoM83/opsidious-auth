@@ -9,6 +9,7 @@ import { initDatabase } from './lib/database.js';
 import { globalLimiter, renderError } from './lib/middleware.js';
 import authorizeRoutes from './routes/authorize.js';
 import callbackRoutes from './routes/callback.js';
+import tokenRoutes from './routes/token.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -61,7 +62,7 @@ app.use(globalLimiter);
 // Route modules are mounted here as later tasks add them:
 app.use(authorizeRoutes);
 app.use(callbackRoutes);
-//   app.use(tokenRoutes);       <- Task 12
+app.use(tokenRoutes);
 //   app.use(wellKnownRoutes);   <- Task 13
 //   app.use(accountRoutes);     <- Task 13
 
