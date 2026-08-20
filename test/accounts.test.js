@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { initDatabase, closeDatabase, dbAll, dbGet } from '../lib/database.js';
 import { pairwiseSubject } from '../lib/crypto.js';
 import { ensurePepper, signInWithGoogleSub, getAccount, deleteAccount } from '../lib/accounts.js';
+import { createSession, resolveSession } from '../lib/sessions.js';
 
 const SUB = '109384756102938475610';
 const OTHER = '210293847561029384756';
@@ -67,4 +68,18 @@ test('deleting an account removes it', async () => {
   const { account } = await signInWithGoogleSub('555555555555555555555');
   await deleteAccount(account.id);
   assert.equal(await getAccount(account.id), undefined);
+});
+
+test('deleting an account ends any of its live sessions', async () => {
+  const { account, pairwiseSalt } = await signInWithGoogleSub('666666666666666666666');
+  const { cookieValue } = await createSession(account.id, pairwiseSalt);
+  assert.ok(await resolveSession(cookieValue));
+
+  await deleteAccount(account.id);
+
+  assert.equal(await resolveSession(cookieValue), null);
+  assert.equal(
+    (await dbAll('SELECT id FROM sso_sessions WHERE account_id = ?', [account.id])).length,
+    0
+  );
 });
