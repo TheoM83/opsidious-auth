@@ -110,8 +110,16 @@ async function start() {
   await initDatabase();
   console.log('database ready');
 
-  // Idempotent: both are created on the first boot and only re-read afterwards.
-  // Minting a second pepper would orphan every account that exists.
+  // Both are created on the first boot and only re-read afterwards, but they
+  // get there differently. ensurePepper's INSERT OR IGNORE is idempotent by
+  // construction - SQLite's PRIMARY KEY enforces one winner even against
+  // concurrent processes with no extra locking. currentSigner has no such
+  // built-in guarantee (a plain SELECT has nothing stopping two racing
+  // processes both finding nothing and both minting): it is safe here only
+  // because it wraps its own check-then-mint in a BEGIN IMMEDIATE
+  // transaction, serialised against busy_timeout (lib/database.js). Minting
+  // a second pepper, or racing two signing keys into existence, would orphan
+  // or desynchronise every account that exists.
   await ensurePepper();
   await currentSigner();
   console.log('pepper and signing key ready');

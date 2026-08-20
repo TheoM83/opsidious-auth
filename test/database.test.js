@@ -9,6 +9,7 @@ import {
   getSetting,
   setSettingOnce
 } from '../lib/database.js';
+import { DB_BUSY_TIMEOUT_MS } from '../lib/config.js';
 
 before(async () => {
   await initDatabase(':memory:');
@@ -84,6 +85,17 @@ test('no table links an account to a client', async () => {
 test('foreign keys are enforced', async () => {
   const row = await dbGet('PRAGMA foreign_keys');
   assert.equal(row.foreign_keys, 1);
+});
+
+test('a busy_timeout is set so a colliding writer waits instead of failing immediately', async () => {
+  // Without this, a write that collides with another write (a sign-in
+  // landing during a sweep, or during the backup's VACUUM INTO) throws
+  // SQLITE_BUSY straight away instead of retrying, which is the classic
+  // SQLite production failure - it would surface as a 500 on a real user's
+  // sign-in.
+  const row = await dbGet('PRAGMA busy_timeout');
+  assert.equal(row.timeout, DB_BUSY_TIMEOUT_MS);
+  assert.ok(row.timeout > 0, 'a zero timeout would fail fast exactly like having none at all');
 });
 
 test('setSettingOnce writes once and never overwrites', async () => {

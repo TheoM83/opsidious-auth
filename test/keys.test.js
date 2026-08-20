@@ -135,3 +135,18 @@ test('a signer is minted again if every key was swept', async () => {
   await dbRun('DELETE FROM signing_keys');
   assert.ok((await currentSigner(NOW)).kid);
 });
+
+test('concurrent same-process calls with no key yet mint exactly one', async () => {
+  // A single SQLite connection cannot have two BEGIN IMMEDIATE transactions
+  // open at once (a second throws "cannot start a transaction within a
+  // transaction" rather than queueing), and this process holds exactly one
+  // connection - so concurrent in-process callers have to be serialised
+  // ahead of that transaction, not just across it. This is the in-process
+  // half of the guarantee; test/keys-mint-race.test.js proves the
+  // cross-process half with real OS processes.
+  await dbRun('DELETE FROM signing_keys');
+  const signers = await Promise.all(Array.from({ length: 8 }, () => currentSigner(NOW)));
+  const kids = new Set(signers.map((s) => s.kid));
+  assert.equal(kids.size, 1, 'every concurrent caller must converge on one key');
+  assert.equal((await dbAll('SELECT kid FROM signing_keys')).length, 1);
+});
