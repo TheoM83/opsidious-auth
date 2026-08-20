@@ -22,6 +22,31 @@ beforeEach(async () => {
   await dbRun('DELETE FROM codes');
 });
 
+test('issueCode rejects a missing appSub instead of silently accepting it', async () => {
+  // app_sub, client_id and redirect_uri were loosened to nullable in the
+  // schema for the post-consumption tombstone (spec §4.2). That must not
+  // let a caller bug through at issuance, where a used-to-be-NOT-NULL column
+  // used to catch it loudly with SQLITE_CONSTRAINT.
+  await assert.rejects(
+    () => issueCode({ appSub: '', clientId: CLIENT, redirectUri: CALLBACK }, NOW),
+    /appSub/
+  );
+});
+
+test('issueCode rejects a missing clientId instead of silently accepting it', async () => {
+  await assert.rejects(
+    () => issueCode({ appSub: 'sub-abc', clientId: undefined, redirectUri: CALLBACK }, NOW),
+    /clientId/
+  );
+});
+
+test('issueCode rejects a missing redirectUri instead of silently accepting it', async () => {
+  await assert.rejects(
+    () => issueCode({ appSub: 'sub-abc', clientId: CLIENT, redirectUri: null }, NOW),
+    /redirectUri/
+  );
+});
+
 test('a code is opaque and only its hash is stored', async () => {
   const code = await issue();
   assert.ok(code.length >= 32);
