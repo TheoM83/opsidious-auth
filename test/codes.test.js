@@ -102,7 +102,7 @@ test('a mismatched code is still spent, not left reusable', async () => {
   const code = await issue();
   await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
   const row = await dbGet('SELECT used FROM codes WHERE code_hash IS NOT NULL');
-  assert.equal(row.used, 1);
+  assert.equal(row.used, 3);
 });
 
 test('an unknown code is refused without an error', async () => {
@@ -115,4 +115,56 @@ test('the sweep removes expired codes', async () => {
   await issue();
   assert.equal(await sweepCodes(NOW), 0);
   assert.equal(await sweepCodes(NOW + 61_000), 1);
+});
+
+test('a code rejected for client mismatch, then presented legitimately: no session deletion', async () => {
+  // A mismatch proves nothing — the code should not be deleted, and the SSO session
+  // should not be terminated. The code is marked spent (rejected), but a later
+  // legitimate presentation is still a replay and does not kill the user's session.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+
+  // First presentation: wrong client ID
+  const wrongClient = await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
+  assert.equal(wrongClient.ok, false);
+  assert.equal(wrongClient.reason, 'client_mismatch');
+  assert.ok(await resolveSession(cookieValue, NOW), 'session still alive after mismatch');
+
+  // Second presentation: correct client ID - still a replay, but session survives
+  const replay = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(replay.ok, false);
+  assert.equal(replay.reason, 'replayed');
+  assert.ok(await resolveSession(cookieValue, NOW), 'session still alive after rejected-then-replayed');
+});
+
+test('a successful consumption followed by replay kills the session', async () => {
+  // This is the real leak detection: if a code is consumed successfully and then
+  // presented again, the session it was issued from is deleted.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+
+  // First presentation: success
+  const success = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(success.ok, true);
+  assert.ok(await resolveSession(cookieValue, NOW), 'session still alive after success');
+
+  // Second presentation: replay kills the session
+  const replay = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(replay.ok, false);
+  assert.equal(replay.reason, 'replayed');
+  assert.equal(await resolveSession(cookieValue, NOW), null, 'session deleted on genuine replay');
+});
+
+test('a third presentation of a rejected-then-replayed code still returns replayed', async () => {
+  // The code row persists until sweep, so a third presentation should still
+  // return 'replayed', not 'unknown'.
+  const code = await issue();
+  await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
+  const second = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(second.reason, 'replayed');
+  const third = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(third.ok, false);
+  assert.equal(third.reason, 'replayed');
 });
