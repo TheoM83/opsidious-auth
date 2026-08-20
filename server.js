@@ -106,6 +106,38 @@ export function makeShutdown({ server, closeDatabase: close, exit = process.exit
   };
 }
 
+// Process-level safety nets. Without these, any stray rejection anywhere -
+// an unawaited promise in a route, a timer callback that throws - takes the
+// whole service down under Node's default behaviour. Both are factories
+// (like makeShutdown, above) so they are testable with fakes rather than by
+// actually crashing a test process.
+//
+// Neither ever logs the error object itself, only `.message`: an Error can
+// carry arbitrary attached data (a request, a response, a decoded token) and
+// this is the one place in the service that has no idea what kind of error
+// it is about to log, so it must assume the worst rather than dump it.
+export function makeUncaughtExceptionHandler(shutdown, log = console.error) {
+  return function onUncaughtException(err) {
+    log('uncaught exception:', err && err.message);
+    // Route through the same graceful shutdown path as a signal, rather than
+    // dying mid-request: this still drains in-flight connections and closes
+    // the database cleanly instead of exiting immediately underneath them.
+    shutdown('uncaughtException');
+  };
+}
+
+export function makeUnhandledRejectionHandler(log = console.error) {
+  return function onUnhandledRejection(reason) {
+    // A rejection reason is not guaranteed to be an Error (`Promise.reject('x')`
+    // is legal), so this can't assume `.message` exists.
+    log('unhandled rejection:', reason instanceof Error ? reason.message : String(reason));
+    // Deliberately no shutdown call: an unhandled rejection elsewhere in the
+    // service is a bug to fix, not proof the process is in a bad state the
+    // way an uncaught exception is. Node's default behaviour (crash) is what
+    // this exists to prevent - the service should keep serving.
+  };
+}
+
 async function start() {
   await initDatabase();
   console.log('database ready');
@@ -141,6 +173,8 @@ async function start() {
   const shutdown = makeShutdown({ server, closeDatabase });
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('uncaughtException', makeUncaughtExceptionHandler(shutdown));
+  process.on('unhandledRejection', makeUnhandledRejectionHandler());
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -5,7 +5,13 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initDatabase, closeDatabase } from '../lib/database.js';
-import { sweep, backup, makeShutdown } from '../server.js';
+import {
+  sweep,
+  backup,
+  makeShutdown,
+  makeUncaughtExceptionHandler,
+  makeUnhandledRejectionHandler
+} from '../server.js';
 
 before(async () => {
   await initDatabase(':memory:');
@@ -94,4 +100,45 @@ test('a rejection from closeDatabase inside the close callback does not escape',
   // would throw and take the test process down with it.
   await assert.doesNotReject(closeCallback());
   assert.deepEqual(exitCodes, [0], 'shutdown still completes after a closeDatabase failure');
+});
+
+test('an uncaught exception is logged and routed through graceful shutdown, not left to kill the process', () => {
+  const logCalls = [];
+  const shutdownCalls = [];
+  const handler = makeUncaughtExceptionHandler(
+    (signal) => shutdownCalls.push(signal),
+    (...args) => logCalls.push(args)
+  );
+
+  handler(new Error('a token leaked into an error message, hypothetically'));
+
+  assert.deepEqual(shutdownCalls, ['uncaughtException'], 'must go through the same path as a signal');
+  assert.equal(logCalls.length, 1, 'must log exactly once');
+  assert.equal(logCalls[0][1], 'a token leaked into an error message, hypothetically');
+});
+
+test('an uncaught exception with no message still logs and still shuts down', () => {
+  const shutdownCalls = [];
+  const handler = makeUncaughtExceptionHandler((signal) => shutdownCalls.push(signal), () => {});
+  assert.doesNotThrow(() => handler({}));
+  assert.deepEqual(shutdownCalls, ['uncaughtException']);
+});
+
+test('an unhandled rejection is logged and does not crash or shut the process down', () => {
+  const logCalls = [];
+  const handler = makeUnhandledRejectionHandler((...args) => logCalls.push(args));
+
+  assert.doesNotThrow(() => handler(new Error('boom')));
+  assert.equal(logCalls.length, 1);
+  assert.equal(logCalls[0][1], 'boom');
+});
+
+test('an unhandled rejection with a non-Error reason is still logged safely', () => {
+  // Promise.reject('a string') is legal - the reason is not guaranteed to be
+  // an Error, so this must not assume `.message` exists.
+  const logCalls = [];
+  const handler = makeUnhandledRejectionHandler((...args) => logCalls.push(args));
+
+  assert.doesNotThrow(() => handler('a plain string rejection'));
+  assert.equal(logCalls[0][1], 'a plain string rejection');
 });
