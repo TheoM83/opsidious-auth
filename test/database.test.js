@@ -40,6 +40,10 @@ test('no table stores a pairwise salt in the clear', async () => {
     (r) => r.name
   );
   for (const table of tables) {
+    // SQLite cannot bind identifiers, so we must interpolate. The table name
+    // comes from sqlite_master, so the source is not exploitable. This
+    // assertion guarantees it is a plain SQL identifier before interpolation.
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) throw new Error(`unexpected table name: ${table}`);
     const columns = await dbAll(`PRAGMA table_info(${table})`);
     for (const column of columns) {
       assert.notEqual(
@@ -52,10 +56,29 @@ test('no table stores a pairwise salt in the clear', async () => {
 });
 
 test('no table links an account to a client', async () => {
-  // Spec §4. `codes` carries the derived app_sub, never account_id.
-  const columns = (await dbAll('PRAGMA table_info(codes)')).map((c) => c.name);
-  assert.ok(columns.includes('app_sub'));
-  assert.ok(!columns.includes('account_id'), 'codes.account_id would record which app a person uses');
+  // Spec §4. No single table carries both account_id and client_id, which would
+  // record which client a specific account signs in to. The `codes` table
+  // carries derived app_sub, never account_id.
+  const tables = (await dbAll("SELECT name FROM sqlite_master WHERE type = 'table'")).map(
+    (r) => r.name
+  );
+  for (const table of tables) {
+    // SQLite cannot bind identifiers, so we must interpolate. The table name
+    // comes from sqlite_master, so the source is not exploitable. This
+    // assertion guarantees it is a plain SQL identifier before interpolation.
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) throw new Error(`unexpected table name: ${table}`);
+    const columns = (await dbAll(`PRAGMA table_info(${table})`)).map((c) => c.name);
+    const hasAccountId = columns.includes('account_id');
+    const hasClientId = columns.includes('client_id');
+    assert.ok(
+      !(hasAccountId && hasClientId),
+      `${table} carries both account_id and client_id - would record which client a user signs in to`
+    );
+  }
+  // Explicit assertion that codes has app_sub and not account_id.
+  const codesColumns = (await dbAll('PRAGMA table_info(codes)')).map((c) => c.name);
+  assert.ok(codesColumns.includes('app_sub'), 'codes must have app_sub');
+  assert.ok(!codesColumns.includes('account_id'), 'codes.account_id would record which app a person uses');
 });
 
 test('foreign keys are enforced', async () => {
