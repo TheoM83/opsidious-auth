@@ -2,12 +2,12 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { jwtVerify, createLocalJWKSet } from 'jose';
-import { ipKeyGenerator } from 'express-rate-limit';
 import { app, initForTest } from '../app.js';
 import { closeDatabase } from '../lib/database.js';
 import { publishedJwks } from '../lib/keys.js';
 import { issueCode } from '../lib/codes.js';
-import { ISSUER, ID_TOKEN_TTL_S } from '../lib/config.js';
+import { tokenRateLimitKey } from '../lib/middleware.js';
+import { ISSUER, ID_TOKEN_TTL_S, CODE_TTL_MS } from '../lib/config.js';
 import { registerTestClient, CALLBACK } from './helpers.js';
 
 let secret;
@@ -141,15 +141,83 @@ test('failures reveal nothing about which check failed', async () => {
   assert.deepEqual(bodies[0], bodies[1]);
 });
 
-test('the token rate limiter normalises an IPv6 address', () => {
-  // Every request in this file goes through tokenLimiter, but whether its
-  // IPv6 branch actually runs depends on which loopback family supertest
-  // happens to bind - not something this suite controls. Exercise the branch
-  // directly: this is exactly the call lib/middleware.js's keyGenerator makes,
-  // and it is what Task 9 fixed (a raw req.ip fails express-rate-limit's IPv6
-  // validation and throws).
-  const key = ipKeyGenerator('2001:db8::1');
+test('an expired code is refused', async () => {
+  const code = await issueCode(
+    { appSub: 'pairwise-abc', clientId: 'defnote', redirectUri: CALLBACK, nonce: 'n1' },
+    Date.now() - CODE_TTL_MS - 1000
+  );
+  const res = await exchange({ code });
+  assert.equal(res.status, 400);
+  assert.deepEqual(res.body, { error: 'invalid_grant' });
+});
+
+test('tokenLimiter keys on the normalised IPv6 subnet and the client id', () => {
+  // Exercises our own wiring, not the third-party library in isolation: this
+  // is the exact function tokenLimiter's keyGenerator option is built from
+  // (lib/middleware.js), called here with a stub request. Task 9 fixed a
+  // raw req.ip crashing express-rate-limit's IPv6 validation; a test that
+  // only calls ipKeyGenerator directly would never notice a regression that
+  // stopped tokenRateLimitKey from using it at all.
+  const key = tokenRateLimitKey({ ip: '2001:db8::1', body: { client_id: 'defnote' } });
   assert.equal(typeof key, 'string');
-  // Subnet-normalised (a /56 by default), not the literal address.
-  assert.notEqual(key, '2001:db8::1');
+  // Subnet-normalised, not the literal address.
+  assert.ok(!key.includes('2001:db8::1'), `expected a normalised subnet, got ${key}`);
+  // The client id is still part of the key, so one client cannot exhaust
+  // another's budget.
+  assert.ok(key.includes('defnote'), `expected the client id in the key, got ${key}`);
+});
+
+test('exactly one concurrent exchange of a freshly issued code succeeds, over HTTP', async () => {
+  // The central safety property of this endpoint - consumeCode's guarded
+  // UPDATE gives exactly one winner - proven through the real rate-limited
+  // route rather than at the library level (test/codes.test.js covers the
+  // library alone, bypassing the route and tokenLimiter entirely).
+  //
+  // A dedicated client keeps this test's rate-limit bucket isolated from the
+  // rest of this file's requests, so the "zero 429s" assertion below reflects
+  // only this test's own budget (6 rounds x 8 = 48, comfortably under
+  // TOKEN_RATE_LIMIT_MAX=60) and doesn't depend on how many requests the
+  // other tests in this file happened to make first.
+  const { secret: concurrentSecret } = await registerTestClient({ id: 'concurrent-app' });
+  const exchangeConcurrent = (over = {}) =>
+    request(app)
+      .post('/token')
+      .type('form')
+      .send({
+        grant_type: 'authorization_code',
+        client_id: 'concurrent-app',
+        client_secret: concurrentSecret,
+        redirect_uri: CALLBACK,
+        ...over
+      });
+
+  const ROUNDS = 6;
+  const CONCURRENCY = 8;
+
+  for (let round = 0; round < ROUNDS; round += 1) {
+    const code = await issueCode({
+      appSub: 'pairwise-abc',
+      clientId: 'concurrent-app',
+      redirectUri: CALLBACK,
+      nonce: 'n1'
+    });
+
+    const responses = await Promise.all(
+      Array.from({ length: CONCURRENCY }, () => exchangeConcurrent({ code }))
+    );
+
+    assert.ok(
+      responses.every((r) => r.status !== 429),
+      `round ${round}: hit the rate limiter - lower CONCURRENCY/ROUNDS or check TOKEN_RATE_LIMIT_MAX`
+    );
+
+    const successes = responses.filter((r) => r.status === 200);
+    assert.equal(successes.length, 1, `round ${round}: expected exactly one 200, got ${successes.length}`);
+
+    for (const r of responses) {
+      if (r.status === 200) continue;
+      assert.equal(r.status, 400);
+      assert.deepEqual(r.body, { error: 'invalid_grant' });
+    }
+  }
 });
