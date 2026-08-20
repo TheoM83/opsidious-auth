@@ -64,3 +64,14 @@ test('the SSO cookie carries the __Host- prefix', async () => {
   const cfg = await loadConfig(MINIMUM);
   assert.match(cfg.SSO_COOKIE_NAME, /^__Host-/);
 });
+
+test('KEY_ROTATION_MS must be larger than KEY_GRACE_MS', async () => {
+  await assert.rejects(
+    () => loadConfig({ ...MINIMUM, KEY_ROTATION_MS: '3600000', KEY_GRACE_MS: '3600000' }),
+    /KEY_ROTATION_MS.*must be larger than KEY_GRACE_MS/
+  );
+  await assert.rejects(
+    () => loadConfig({ ...MINIMUM, KEY_ROTATION_MS: '1800000', KEY_GRACE_MS: '3600000' }),
+    /KEY_ROTATION_MS.*must be larger than KEY_GRACE_MS/
+  );
+});

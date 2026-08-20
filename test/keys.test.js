@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { SignJWT, jwtVerify, createLocalJWKSet, decodeProtectedHeader } from 'jose';
 import { initDatabase, closeDatabase, dbRun, dbAll } from '../lib/database.js';
 import { currentSigner, publishedJwks, rotateIfNeeded, sweepExpiredKeys } from '../lib/keys.js';
+import { KEY_ROTATION_MS, KEY_GRACE_MS } from '../lib/config.js';
 
 const HOUR = 3600000;
 const DAY = 24 * HOUR;
@@ -70,12 +71,27 @@ test('rotation does nothing before the key is due', async () => {
   assert.equal((await dbAll('SELECT kid FROM signing_keys')).length, 1);
 });
 
-test('rotation mints a new key once the current one is near retirement', async () => {
+test('rotation mints a new key during the lookahead window', async () => {
+  // The lookahead window is (retires_at - KEY_GRACE_MS, retires_at).
+  // At this point, the old key is still non-retired, so newestSigningKey returns it
+  // and the lookahead check (row.retires_at > now + KEY_GRACE_MS) fails, triggering a mint.
   const first = await currentSigner(NOW);
-  const later = NOW + 30 * DAY;
-  const minted = await rotateIfNeeded(later);
-  assert.ok(minted && minted !== first.kid);
-  assert.equal((await currentSigner(later)).kid, minted, 'the new key signs from now on');
+  const retiresAt = NOW + KEY_ROTATION_MS;
+  const inLookahead = retiresAt - KEY_GRACE_MS / 2; // Strictly inside the lookahead window
+  const minted = await rotateIfNeeded(inLookahead);
+  assert.ok(minted && minted !== first.kid, 'should mint a successor during lookahead');
+  // After lookahead rotation, the new key signs.
+  assert.equal((await currentSigner(inLookahead)).kid, minted, 'the new key signs once minted');
+});
+
+test('rotation mints a new key once the current one has retired', async () => {
+  // After retires_at, newestSigningKey returns null (no non-retired key exists).
+  // rotateIfNeeded mints a successor through the !row fallthrough.
+  const first = await currentSigner(NOW);
+  const atRetires = NOW + KEY_ROTATION_MS;
+  const minted = await rotateIfNeeded(atRetires);
+  assert.ok(minted && minted !== first.kid, 'should mint a successor after retires_at');
+  assert.equal((await currentSigner(atRetires)).kid, minted, 'the new key signs once minted');
 });
 
 test('a token signed before rotation still verifies after it', async () => {
