@@ -1,0 +1,19 @@
+{
+  "name": "opsidious-auth-client",
+  "version": "1.0.0",
+  "description": "Express client for Opsidious Auth",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
+  "peerDependencies": {
+    "express": ">=4",
+    "cookie-parser": ">=1.4"
+  },
+  "license": "MIT"
+}
