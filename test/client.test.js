@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { app as authApp, initForTest } from '../app.js';
 import { closeDatabase, dbAll } from '../lib/database.js';
 import { __setTransport } from '../lib/google.js';
@@ -79,6 +80,85 @@ async function signIn() {
     .set('Cookie', txCookie);
 
   return { done, txCookie, ssoCookie: backFromGoogle.headers['set-cookie'] };
+}
+
+// A standalone stand-in for the auth service, used only to prove each
+// verification gate in client/index.js on its own: it serves whatever JWKS
+// and /token response a test hands it, so a test can mint a token that is
+// wrong in exactly one way (algorithm, issuer, audience, or nonce) while
+// everything else about it is otherwise a token the client would accept.
+function stubAuthService() {
+  let jwks = { keys: [] };
+  let tokenBody = {};
+  const stub = express();
+  stub.get('/.well-known/jwks.json', (req, res) => res.json(jwks));
+  stub.post('/token', (req, res) => res.json(tokenBody));
+  const server = stub.listen(0);
+  return {
+    url: `http://127.0.0.1:${server.address().port}`,
+    setJwks: (next) => {
+      jwks = next;
+    },
+    setTokenResponse: (next) => {
+      tokenBody = next;
+    },
+    close: () => server.close()
+  };
+}
+
+// Mints a token exactly the way the real service would EXCEPT for whichever
+// field a test overrides, and returns the JWKS that makes it verifiable
+// (i.e. the client is not rejecting it for a missing/unmatched key - only
+// for the one deliberately wrong claim or header).
+async function forgeToken({ alg = 'RS256', iss, aud, sub = 'forged-sub', nonce, kid = 'forge-kid' }) {
+  const { publicKey, privateKey } = await generateKeyPair(alg, { extractable: true });
+  const jwk = await exportJWK(publicKey);
+  jwk.kid = kid;
+  jwk.use = 'sig';
+  jwk.alg = alg;
+
+  const now = Math.floor(Date.now() / 1000);
+  const claims = {};
+  if (nonce !== undefined) claims.nonce = nonce;
+
+  const token = await new SignJWT(claims)
+    .setProtectedHeader({ alg, kid })
+    .setIssuer(iss)
+    .setAudience(aud)
+    .setSubject(sub)
+    .setIssuedAt(now)
+    .setExpirationTime(now + 120)
+    .sign(privateKey);
+
+  return { token, jwks: { keys: [jwk] } };
+}
+
+// Builds a fresh client + host app pointed at a stub service, and runs it
+// through /start so a test gets a real transaction cookie, state and nonce
+// to build a forged token around.
+async function startAgainstStub(stubUrl) {
+  const auth = opsidiousAuth({
+    issuer: stubUrl,
+    clientId: 'forge-client',
+    clientSecret: 'forge-secret',
+    redirectUri: 'http://forge.test/cb'
+  });
+  const forgeApp = express();
+  forgeApp.use(cookieParser());
+  forgeApp.get('/start', auth.start());
+  forgeApp.get('/cb', auth.callback(), (req, res) =>
+    res.json({ sub: req.opsidious.sub ?? null, error: req.opsidious.error ?? null })
+  );
+
+  const started = await request(forgeApp).get('/start');
+  const txCookie = started.headers['set-cookie'].map((c) => c.split(';')[0]).join('; ');
+  const startUrl = new URL(started.headers.location);
+  return {
+    forgeApp,
+    txCookie,
+    state: startUrl.searchParams.get('state'),
+    nonce: startUrl.searchParams.get('nonce')
+  };
 }
 
 test('three lines of setup produce a verified subject', async () => {
@@ -189,4 +269,106 @@ test('the same person is a different subject in a second application', async () 
 
   assert.ok(done.body.sub);
   assert.notEqual(done.body.sub, first.done.body.sub, 'two applications, two subjects');
+});
+
+// Each of the next four tests mints a token that is wrong in exactly one
+// way - the algorithm, the issuer, the audience, or the nonce - while every
+// other field is what the client would otherwise accept, so each test can
+// only pass because its one gate held. Every one of them asserts both that
+// no subject is returned AND the specific refusal the client's code path
+// actually produces, not just that something failed.
+
+test('a token signed with a non-pinned algorithm is refused', async () => {
+  const stub = stubAuthService();
+  try {
+    const { forgeApp, txCookie, state, nonce } = await startAgainstStub(stub.url);
+
+    // Correct issuer, correct audience, correct nonce - wrong only in that
+    // this is signed PS256, which is not in the pinned algorithms list.
+    const { token, jwks } = await forgeToken({
+      alg: 'PS256',
+      iss: stub.url,
+      aud: 'forge-client',
+      nonce
+    });
+    stub.setJwks(jwks);
+    stub.setTokenResponse({ id_token: token, token_type: 'Bearer', expires_in: 120 });
+
+    const res = await request(forgeApp).get('/cb').query({ code: 'c', state }).set('Cookie', txCookie);
+    assert.equal(res.body.sub, null);
+    assert.equal(res.body.error, 'invalid_grant');
+  } finally {
+    stub.close();
+  }
+});
+
+test('a token with the wrong issuer is refused', async () => {
+  const stub = stubAuthService();
+  try {
+    const { forgeApp, txCookie, state, nonce } = await startAgainstStub(stub.url);
+
+    // Correctly signed, correct audience, correct nonce - wrong only in
+    // that `iss` names a different origin than the one the client trusts.
+    const { token, jwks } = await forgeToken({
+      iss: 'http://not-the-real-issuer.test',
+      aud: 'forge-client',
+      nonce
+    });
+    stub.setJwks(jwks);
+    stub.setTokenResponse({ id_token: token, token_type: 'Bearer', expires_in: 120 });
+
+    const res = await request(forgeApp).get('/cb').query({ code: 'c', state }).set('Cookie', txCookie);
+    assert.equal(res.body.sub, null);
+    assert.equal(res.body.error, 'invalid_grant');
+  } finally {
+    stub.close();
+  }
+});
+
+test('a token issued for a different client_id is refused', async () => {
+  // This is the check that stops one relying application from replaying
+  // another application's token as its own.
+  const stub = stubAuthService();
+  try {
+    const { forgeApp, txCookie, state, nonce } = await startAgainstStub(stub.url);
+
+    // Correctly signed, correct issuer, correct nonce - wrong only in that
+    // `aud` names a client_id other than the one asking.
+    const { token, jwks } = await forgeToken({
+      iss: stub.url,
+      aud: 'someone-elses-client',
+      nonce
+    });
+    stub.setJwks(jwks);
+    stub.setTokenResponse({ id_token: token, token_type: 'Bearer', expires_in: 120 });
+
+    const res = await request(forgeApp).get('/cb').query({ code: 'c', state }).set('Cookie', txCookie);
+    assert.equal(res.body.sub, null);
+    assert.equal(res.body.error, 'invalid_grant');
+  } finally {
+    stub.close();
+  }
+});
+
+test('a token carrying a different nonce than the one parked is refused', async () => {
+  const stub = stubAuthService();
+  try {
+    const { forgeApp, txCookie, state } = await startAgainstStub(stub.url);
+
+    // Correctly signed, correct issuer, correct audience - wrong only in
+    // that `nonce` is not the one bound to this transaction's cookie.
+    const { token, jwks } = await forgeToken({
+      iss: stub.url,
+      aud: 'forge-client',
+      nonce: 'not-the-nonce-we-parked'
+    });
+    stub.setJwks(jwks);
+    stub.setTokenResponse({ id_token: token, token_type: 'Bearer', expires_in: 120 });
+
+    const res = await request(forgeApp).get('/cb').query({ code: 'c', state }).set('Cookie', txCookie);
+    assert.equal(res.body.sub, null);
+    assert.equal(res.body.error, 'invalid_nonce');
+  } finally {
+    stub.close();
+  }
 });
