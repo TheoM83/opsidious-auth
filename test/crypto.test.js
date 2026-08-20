@@ -91,6 +91,16 @@ test('a truncated blob is rejected', () => {
   assert.throws(() => openSealed(key, seal(key, newSalt()).subarray(0, 20)));
 });
 
+test('an empty plaintext seals and opens to a zero-length buffer', () => {
+  // 12-byte IV + 16-byte tag + 0 bytes of ciphertext is a legitimate blob,
+  // not a truncated one - the guard must require at least IV+TAG, not more.
+  const key = deriveKey(GOOGLE_SUB, newKdfSalt(), INFO_ACCOUNT);
+  const blob = seal(key, Buffer.alloc(0));
+  assert.equal(blob.length, 12 + 16);
+  const opened = openSealed(key, blob);
+  assert.equal(opened.length, 0);
+});
+
 test('two clients get different subjects from one salt', () => {
   // The anonymity guarantee of §4, as a single assertion.
   const salt = newSalt();
