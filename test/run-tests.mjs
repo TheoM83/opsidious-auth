@@ -15,7 +15,11 @@ let failed = 0;
 const failedFiles = [];
 
 for (const file of files) {
-  const res = spawnSync(process.execPath, [join(testDir, file)], {
+  // --test is required: without it, a failure reported at file level (an
+  // after()/before() hook throwing, rather than inside a test()) still
+  // prints `not ok` but the process exits 0, so the harness would silently
+  // report the suite as green.
+  const res = spawnSync(process.execPath, ['--test', join(testDir, file)], {
     stdio: 'inherit',
     cwd: dirname(testDir),
     env: {
