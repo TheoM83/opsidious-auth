@@ -31,7 +31,13 @@ jobs:
           fail() { echo "::error::$1"; exit 1; }
           git grep -nIE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' -- . ':!*.md' && fail "private key committed" || true
           git grep -nIE -- 'GOCSPX-[A-Za-z0-9_-]{10,}' && fail "Google client secret committed" || true
-          # A non-empty assignment to anything ending in _SECRET, outside docs.
-          git grep -nIE -- '[A-Z_]*_SECRET[[:space:]]*=[[:space:]]*["'"'"']?[A-Za-z0-9/+_-]{8,}' \
+          # An actual value assigned to anything ending in _SECRET, outside docs.
+          # Two shapes count as a hit; a bare reference like required('X_SECRET')
+          # matches neither, since nothing quoted or unquoted follows an `=`/`:`:
+          #   1. a quoted literal:            X_SECRET = "at least 8 chars"
+          #   2. a line-start env assignment: X_SECRET=at_least_8_unquoted_chars
+          git grep -nIE \
+            -e '[A-Z_]*_SECRET[[:space:]]*[=:][[:space:]]*["'"'"'][A-Za-z0-9/+_-]{8,}' \
+            -e '^[A-Z_]*_SECRET=[A-Za-z0-9/+_-]{8,}' \
             -- . ':!*.md' ':!.env.example' ':!.github/**' && fail "secret assigned in tracked file" || true
           echo "no committed secrets found"
