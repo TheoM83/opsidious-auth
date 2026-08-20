@@ -72,7 +72,10 @@ router.post('/account/delete', async (req, res, next) => {
     if (!current) return undefined;
     if (!checkCsrf(req, current.cookieValue)) return renderError(res, 403, 'Requête invalide.');
 
-    // Irreversible, so a CSRF token alone is not enough.
+    // The CSRF token above is the actual security control. SUPPRIMER is
+    // fixed and public, so it stops nothing an attacker who can pass the
+    // CSRF check couldn't also supply - its job is deliberate friction
+    // against an authenticated user's own misclick on an irreversible action.
     if (String(req.body?.confirm ?? '').trim() !== 'SUPPRIMER') {
       return renderError(res, 400, 'Saisissez SUPPRIMER pour confirmer.');
     }

@@ -14,6 +14,11 @@ after(async () => {
   await closeDatabase();
 });
 
+// Well-formed (64 hex chars, the shape of a real sha256 hex digest) so a
+// comparison against it exercises safeEqual's equal-length path rather than
+// the length-mismatch shortcut - but it is not the session's actual token.
+const WRONG_CSRF = '0'.repeat(64);
+
 async function signedIn() {
   const { account, pairwiseSalt } = await signInWithGoogleSub(`sub-${Math.random()}`);
   const { cookieValue } = await createSession(account.id, pairwiseSalt);
@@ -44,7 +49,9 @@ test('the page says what deleting here does not reach', async () => {
   const { page } = await signedIn();
   assert.equal(page.status, 200);
   assert.match(page.text, /applications/i);
-  assert.match(page.text, /supprim/i);
+  // Pins the explanation itself, not just decorative heading/button text
+  // that also happens to contain "supprim" (e.g. "Supprimer ce compte").
+  assert.match(page.text, /ne seront pas effacées/i);
 });
 
 test('the page never displays the Google account or any identifier', async () => {
@@ -72,6 +79,19 @@ test('logout without the CSRF token is refused', async () => {
     .type('form')
     .set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`)
     .send({});
+  assert.equal(res.status, 403);
+  assert.ok(await resolveSession(cookieValue));
+});
+
+test('logout with a present but incorrect CSRF token is refused', async () => {
+  // A presence-only check (`Boolean(req.body?.csrf)`) would pass this. The
+  // token must be compared against the value derived from the cookie.
+  const { cookieValue } = await signedIn();
+  const res = await request(app)
+    .post('/logout')
+    .type('form')
+    .set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`)
+    .send({ csrf: WRONG_CSRF });
   assert.equal(res.status, 403);
   assert.ok(await resolveSession(cookieValue));
 });
@@ -110,6 +130,20 @@ test('deletion without the CSRF token does nothing', async () => {
     .type('form')
     .set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`)
     .send({ confirm: 'SUPPRIMER' });
+
+  assert.equal(res.status, 403);
+  assert.equal((await dbAll('SELECT id FROM accounts WHERE id = ?', [account.id])).length, 1);
+});
+
+test('deletion with a present but incorrect CSRF token does nothing', async () => {
+  // Same regression this guards against as the logout case above: a
+  // presence-only check would let a forged-but-wrong token through.
+  const { account, cookieValue } = await signedIn();
+  const res = await request(app)
+    .post('/account/delete')
+    .type('form')
+    .set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`)
+    .send({ csrf: WRONG_CSRF, confirm: 'SUPPRIMER' });
 
   assert.equal(res.status, 403);
   assert.equal((await dbAll('SELECT id FROM accounts WHERE id = ?', [account.id])).length, 1);
