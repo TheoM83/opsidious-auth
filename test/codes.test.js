@@ -10,10 +10,7 @@ const CLIENT = 'defnote';
 const CALLBACK = 'https://defnote.test/auth/callback';
 
 const issue = (over = {}, now = NOW) =>
-  issueCode(
-    { appSub: 'sub-abc', clientId: CLIENT, redirectUri: CALLBACK, nonce: 'n1', ...over },
-    now
-  );
+  issueCode({ appSub: 'sub-abc', clientId: CLIENT, redirectUri: CALLBACK, nonce: 'n1', ...over }, now);
 
 before(async () => {
   await initDatabase(':memory:');
@@ -87,11 +84,7 @@ test('a code presented by another client is refused', async () => {
 
 test('a code presented with a different redirect URI is refused', async () => {
   const code = await issue();
-  const result = await consumeCode(
-    code,
-    { clientId: CLIENT, redirectUri: CALLBACK + '?x=1' },
-    NOW
-  );
+  const result = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK + '?x=1' }, NOW);
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'redirect_mismatch');
 });
@@ -155,6 +148,41 @@ test('a successful consumption followed by replay kills the session', async () =
   assert.equal(replay.ok, false);
   assert.equal(replay.reason, 'replayed');
   assert.equal(await resolveSession(cookieValue, NOW), null, 'session deleted on genuine replay');
+});
+
+test('a successful consumption tombstones the row: no app, no pairwise subject, but replay still revokes', async () => {
+  // While app_sub, client_id and sso_session_id sit together in one row, and
+  // sso_session_id joins on to accounts via sso_sessions, the auth database
+  // alone can link an account to a named application for as long as that row
+  // survives. consumeCode must null the correlating fields in the same
+  // UPDATE that marks the code spent, not wait for sweepCodes (spec §4.2).
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+
+  const success = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(success.ok, true);
+  // The in-memory row returned to the caller (routes/token.js) still has live
+  // values - it was read before the nulling UPDATE ran.
+  assert.equal(success.row.app_sub, 'sub-abc');
+  assert.equal(success.row.client_id, CLIENT);
+
+  const persisted = await dbGet('SELECT * FROM codes WHERE sso_session_id = ?', [session.id]);
+  assert.equal(persisted.app_sub, null, 'no pairwise subject survives consumption');
+  assert.equal(persisted.client_id, null, 'no application name survives consumption');
+  assert.equal(persisted.nonce, null);
+  assert.equal(persisted.redirect_uri, null);
+  // What replay detection and session revocation need is exactly this: kept.
+  assert.equal(persisted.used, 2);
+  assert.ok(persisted.sso_session_id);
+  assert.ok(persisted.code_hash);
+  assert.ok(persisted.expires_at);
+
+  // A replay of the same (now-tombstoned) code must still revoke the session.
+  const replay = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(replay.ok, false);
+  assert.equal(replay.reason, 'replayed');
+  assert.equal(await resolveSession(cookieValue, NOW), null, 'replay still revokes the session');
 });
 
 test('a third presentation of a rejected-then-replayed code still returns replayed', async () => {
