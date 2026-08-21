@@ -4,7 +4,9 @@
   "description": "Anonymous Google-only identity provider for Opsidious projects",
   "main": "server.js",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
     "dev": "node --watch --env-file-if-exists=.env server.js",

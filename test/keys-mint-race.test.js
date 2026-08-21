@@ -61,9 +61,7 @@ test('four real processes racing to boot against one fresh database mint exactly
   const dir = mkdtempSync(join(tmpdir(), 'opsid-keys-race-'));
   const dbPath = join(dir, 'race.db');
   try {
-    const kids = await Promise.all(
-      Array.from({ length: PROCESS_COUNT }, () => spawnChild(dbPath))
-    );
+    const kids = await Promise.all(Array.from({ length: PROCESS_COUNT }, () => spawnChild(dbPath)));
     const rows = await readSigningKeyRows(dbPath);
     assert.equal(rows.length, 1, `expected exactly one signing key, found ${rows.length}`);
     assert.ok(

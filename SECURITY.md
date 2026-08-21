@@ -21,6 +21,6 @@ Please do not open a public issue for a vulnerability.
   build. The design minimises what an attacker or a leak obtains; it does not
   and cannot constrain the operator. This is stated in the design document
   rather than implied.
-- An attacker who already holds a victim's Google subject identifier *and* a
+- An attacker who already holds a victim's Google subject identifier _and_ a
   dump of the database. Deanonymising that one person is then possible by
   design, because a login has to be able to find an existing account.

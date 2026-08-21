@@ -37,9 +37,7 @@ test('every expected table exists', async () => {
 test('no table stores a pairwise salt in the clear', async () => {
   // Spec §4.3. A plaintext salt column would silently undo the entire
   // anonymity guarantee while every other test still passed.
-  const tables = (await dbAll("SELECT name FROM sqlite_master WHERE type = 'table'")).map(
-    (r) => r.name
-  );
+  const tables = (await dbAll("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name);
   for (const table of tables) {
     // SQLite cannot bind identifiers, so we must interpolate. The table name
     // comes from sqlite_master, so the source is not exploitable. This
@@ -47,11 +45,7 @@ test('no table stores a pairwise salt in the clear', async () => {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) throw new Error(`unexpected table name: ${table}`);
     const columns = await dbAll(`PRAGMA table_info(${table})`);
     for (const column of columns) {
-      assert.notEqual(
-        column.name,
-        'pairwise_salt',
-        `${table}.pairwise_salt must not exist - see spec §4.3`
-      );
+      assert.notEqual(column.name, 'pairwise_salt', `${table}.pairwise_salt must not exist - see spec §4.3`);
     }
   }
 });
@@ -60,9 +54,7 @@ test('no table links an account to a client', async () => {
   // Spec §4. No single table carries both account_id and client_id, which would
   // record which client a specific account signs in to. The `codes` table
   // carries derived app_sub, never account_id.
-  const tables = (await dbAll("SELECT name FROM sqlite_master WHERE type = 'table'")).map(
-    (r) => r.name
-  );
+  const tables = (await dbAll("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name);
   for (const table of tables) {
     // SQLite cannot bind identifiers, so we must interpolate. The table name
     // comes from sqlite_master, so the source is not exploitable. This

@@ -96,7 +96,10 @@ test('a second backup on the same day overwrites rather than piling up', async (
   // backup in place untouched. Assert the second call reported success and
   // that its content is the newer content, not just that the filename count
   // didn't change.
-  assert.ok(second, 'the second backup must also succeed, not silently fail because the target already exists');
+  assert.ok(
+    second,
+    'the second backup must also succeed, not silently fail because the target already exists'
+  );
   assert.equal(second, first, 'the same day must produce the same target filename');
 
   const rows = await readBackedUpTable(second, 'SELECT id FROM accounts');

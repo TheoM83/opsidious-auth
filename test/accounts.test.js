@@ -94,8 +94,5 @@ test('deleting an account ends any of its live sessions', async () => {
   await deleteAccount(account.id);
 
   assert.equal(await resolveSession(cookieValue), null);
-  assert.equal(
-    (await dbAll('SELECT id FROM sso_sessions WHERE account_id = ?', [account.id])).length,
-    0
-  );
+  assert.equal((await dbAll('SELECT id FROM sso_sessions WHERE account_id = ?', [account.id])).length, 0);
 });

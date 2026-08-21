@@ -39,7 +39,7 @@ try {
   console.log('');
   console.log('  This secret is shown ONCE, right now, and never again. Only its hash is');
   console.log('  stored - there is no "forgot secret" recovery. Copy it into the client');
-  console.log('  application\'s configuration before closing this terminal.');
+  console.log("  application's configuration before closing this terminal.");
   console.log(`  Redirect URIs are matched EXACTLY - a trailing slash is a different URI:`);
   for (const uri of redirectUris) console.log(`    ${uri}`);
   console.log('');

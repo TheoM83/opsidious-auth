@@ -40,14 +40,8 @@ test('a trailing slash on PUBLIC_URL is removed', async () => {
 });
 
 test('the process refuses to start without the Google credentials', async () => {
-  await assert.rejects(
-    () => loadConfig({ ...MINIMUM, GOOGLE_CLIENT_ID: '' }),
-    /GOOGLE_CLIENT_ID/
-  );
-  await assert.rejects(
-    () => loadConfig({ ...MINIMUM, GOOGLE_CLIENT_SECRET: '' }),
-    /GOOGLE_CLIENT_SECRET/
-  );
+  await assert.rejects(() => loadConfig({ ...MINIMUM, GOOGLE_CLIENT_ID: '' }), /GOOGLE_CLIENT_ID/);
+  await assert.rejects(() => loadConfig({ ...MINIMUM, GOOGLE_CLIENT_SECRET: '' }), /GOOGLE_CLIENT_SECRET/);
 });
 
 test('the process refuses to start without a public URL', async () => {
