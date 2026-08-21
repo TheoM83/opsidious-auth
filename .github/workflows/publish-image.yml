@@ -1,7 +1,17 @@
 name: Publish container image
 
+# Gated on CI (ci.yml's "CI" workflow) actually passing. `needs:` only works
+# between jobs in the same workflow file, and this publish/deploy pipeline
+# and the test suite are deliberately separate workflows, so the dependency
+# has to be expressed as workflow_run: build-push runs only once CI has
+# *completed*, and its own `if:` below then checks that CI's conclusion was
+# a success before doing anything. Without this, a push with a red suite
+# still built the image and SSHed into the server to redeploy it - for an
+# identity provider, the one gate worth adding.
 on:
-  push:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -12,11 +22,23 @@ concurrency:
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    # workflow_dispatch is a deliberate manual run with no CI result to
+    # check - allowed through unconditionally. A workflow_run event fires
+    # whether CI passed or failed, so that path must check the conclusion
+    # itself; skipping the job (rather than failing it) leaves no image
+    # published and no deploy attempted, exactly as if this workflow had
+    # never run.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # A workflow_run event checks out main by default, not the commit
+          # CI actually tested - pin explicitly to the commit that earned
+          # this run, so the image built here is the image CI passed.
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
 
       - uses: docker/login-action@v3
         with:
@@ -45,9 +67,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Redeploy on the server. continue-on-error so a missing secret still
-      # leaves the image published.
+      # leaves the image published. Only for the CI-gated path, not a manual
+      # workflow_dispatch - matches this step's previous `push`-only scope.
       - name: Deploy on mercury (SSH)
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'workflow_run' }}
         continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -55,7 +78,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ${{ vars.MERCURY_INFRA_PATH || '/home/mercury/mercury/infrastructure' }} || exit 1
+            cd ${{ vars.MERCURY_INFRA_PATH }} || exit 1
             docker compose pull opsidious-auth
             docker compose up -d opsidious-auth
             echo "opsidious-auth redeployed"
