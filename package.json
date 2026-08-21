@@ -4,6 +4,11 @@
   "description": "Anonymous Google-only identity provider for Opsidious projects",
   "main": "server.js",
   "type": "module",
+  "exports": {
+    ".": "./server.js",
+    "./client": "./client/index.js",
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": ">=22"
   },
