@@ -34,11 +34,23 @@ ENV BACKUP_DIR=/backups
 
 EXPOSE 4570
 
-# /healthz is mounted in app.js before anything that touches the database
-# (see the comment there), specifically so it can distinguish "the process is
-# alive" from "the process is alive but the database is broken" - the second
-# is exactly the case a restart should fix, and this is the only check that
-# can tell the two apart from outside the container.
+# /healthz is a liveness probe, deliberately - it does no I/O of any kind (no
+# database, no network; see the design spec §6, and the comment in app.js on
+# why it is mounted ahead of everything that touches the database). It only
+# answers "the process is alive", not "the process is alive AND the database
+# is healthy": those are two different questions, and conflating them is
+# exactly the failure mode this check must not have. A database that is
+# corrupt AT BOOT is handled elsewhere and well - server.js's start() logs a
+# fatal message and exits 1, which this HEALTHCHECK never even gets a chance
+# to observe, and Docker's restart policy takes it from there. A database
+# that wedges AFTER boot is a real gap this check does not close: every route
+# would 500 while the container keeps reporting healthy. Closing that gap
+# would mean giving this endpoint the one thing spec §6 says it must not
+# have - a database round trip on every probe, on every container, forever -
+# in exchange for catching a fault class that has not occurred in production
+# and that a human is far better placed to diagnose than an automatic
+# restart loop would be. A liveness-only check was the deliberate choice, not
+# an oversight; a previous version of this comment claimed the opposite.
 #
 #   --start-period=10s  boot does real work before the port opens: open the
 #                        database, read-or-mint the pepper and the first
