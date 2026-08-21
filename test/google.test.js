@@ -82,6 +82,23 @@ test('a failed exchange raises rather than returning undefined', async () => {
   await assert.rejects(() => exchangeCode('bad'), /Google/);
 });
 
+test('the exchange carries an abort signal, so a hung connection cannot be held open forever', async () => {
+  // Without this, a stalled response to our own call to Google leaves undici
+  // holding a connection (and a rate-limit slot) open for roughly five
+  // minutes - long after /callback/google has already deleted the parked
+  // request that could have used the answer.
+  let seenSignal = null;
+  __setTransport({
+    fetchImpl: async (url, options) => {
+      seenSignal = options.signal;
+      return { ok: true, status: 200, json: async () => ({ id_token: 'stub' }) };
+    }
+  });
+  await exchangeCode('google-code');
+  assert.ok(seenSignal instanceof AbortSignal, 'fetch must be given an AbortSignal');
+  assert.equal(seenSignal.aborted, false, 'not aborted for a response that arrives promptly');
+});
+
 test('a response with no id token raises', async () => {
   __setTransport({ fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) }) });
   await assert.rejects(() => exchangeCode('weird'), /id_token/);
