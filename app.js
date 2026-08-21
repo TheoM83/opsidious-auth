@@ -58,8 +58,11 @@ app.use(cookieParser());
 // process as alive.
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
 
-app.use(express.static(join(here, 'public'), { maxAge: '7d' }));
+// globalLimiter first: mounted ahead of express.static, static assets were
+// unrate-limited - an amplification lever of their own (spec §7.17), the
+// same reasoning that already put this limiter ahead of every route below.
 app.use(globalLimiter);
+app.use(express.static(join(here, 'public'), { maxAge: '7d' }));
 
 // Route modules are mounted here as later tasks add them:
 app.use(authorizeRoutes);

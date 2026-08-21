@@ -48,6 +48,14 @@ test('nosniff is set', async () => {
   assert.equal((await request(app).get('/healthz')).headers['x-content-type-options'], 'nosniff');
 });
 
+test('static assets are rate-limited too, not an unmetered amplification lever', async () => {
+  // globalLimiter must be mounted ahead of express.static, not after it -
+  // otherwise every request for /styles.css bypasses the limiter entirely.
+  const res = await request(app).get('/styles.css');
+  assert.equal(res.status, 200);
+  assert.ok(res.headers['ratelimit-limit'], 'the rate-limit headers must be present on a static response');
+});
+
 test('an unknown path renders the error page, not a stack trace', async () => {
   const res = await request(app).get('/definitely-not-a-route');
   assert.equal(res.status, 404);
