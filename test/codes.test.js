@@ -210,6 +210,32 @@ test('a successful consumption tombstones the row: no app, no pairwise subject, 
   assert.equal(await resolveSession(cookieValue, NOW), null, 'replay still revokes the session');
 });
 
+test('a rejected code is tombstoned too, not just a successfully consumed one', async () => {
+  // Before this, only the success path nulled app_sub/client_id/nonce/
+  // redirect_uri. An abandoned or rejected code kept every field live for
+  // the rest of its tombstone lifetime, which is exactly the account-to-
+  // application link the schema comment (lib/database.js) says must not
+  // survive (spec §4.2). Exercised here via an expired code, since it's the
+  // simplest rejection to reach without another client's credentials.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+
+  const result = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW + 61_000);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'expired');
+
+  const persisted = await dbGet('SELECT * FROM codes WHERE sso_session_id = ?', [session.id]);
+  assert.equal(persisted.used, 3, 'rejected');
+  assert.equal(persisted.app_sub, null, 'no pairwise subject survives a rejection either');
+  assert.equal(persisted.client_id, null, 'no application name survives a rejection either');
+  assert.equal(persisted.nonce, null);
+  assert.equal(persisted.redirect_uri, null);
+  // What replay detection needs is exactly this: kept.
+  assert.ok(persisted.sso_session_id);
+  assert.ok(persisted.code_hash);
+});
+
 test('a third presentation of a rejected-then-replayed code still returns replayed', async () => {
   // The code row persists until sweep, so a third presentation should still
   // return 'replayed', not 'unknown'.

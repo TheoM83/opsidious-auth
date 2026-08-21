@@ -15,7 +15,8 @@ import {
   BACKUP_DIR,
   BACKUP_RETENTION_DAYS,
   BACKUP_INTERVAL_MS,
-  SWEEP_INTERVAL_MS
+  SWEEP_INTERVAL_MS,
+  CODE_SWEEP_INTERVAL_MS
 } from './lib/config.js';
 
 // Re-entrancy guard for a periodic job. `setInterval` does not wait for a
@@ -52,12 +53,24 @@ async function sweepOnce() {
   try {
     const now = Date.now();
     await dbRun('DELETE FROM auth_requests WHERE expires_at <= ?', [now]);
-    await sweepCodes(now);
     await sweepSessions(now);
     await sweepExpiredKeys(now);
     await rotateIfNeeded(now);
   } catch (err) {
     console.error('sweep failed:', err.message);
+  }
+}
+
+// Codes run on their own, much shorter interval (CODE_SWEEP_INTERVAL_MS) than
+// the general sweep above - see the comment on that constant in
+// lib/config.js. Split out rather than just called more often from within
+// sweepOnce so the general sweep's cadence stays governed by
+// SWEEP_INTERVAL_MS alone.
+async function sweepCodesOnce() {
+  try {
+    await sweepCodes(Date.now());
+  } catch (err) {
+    console.error('code sweep failed:', err.message);
   }
 }
 
@@ -80,6 +93,7 @@ async function backupOnce() {
 // runs either of them; only start(), below, does, and only when this file is
 // the process entry point.
 export const sweep = withOverlapGuard(sweepOnce, 'sweep');
+export const sweepCodesJob = withOverlapGuard(sweepCodesOnce, 'code sweep');
 export const backup = withOverlapGuard(backupOnce, 'backup');
 
 // Factory rather than a bare function so the re-entrancy behaviour is
@@ -159,6 +173,10 @@ async function start() {
   await sweep();
   const sweepTimer = setInterval(sweep, SWEEP_INTERVAL_MS);
   sweepTimer.unref();
+
+  await sweepCodesJob();
+  const codeSweepTimer = setInterval(sweepCodesJob, CODE_SWEEP_INTERVAL_MS);
+  codeSweepTimer.unref();
 
   if (BACKUP_DIR) {
     await backup();
