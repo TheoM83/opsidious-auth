@@ -136,6 +136,25 @@ test('a signer is minted again if every key was swept', async () => {
   assert.ok((await currentSigner(NOW)).kid);
 });
 
+test('concurrent same-process rotateIfNeeded calls at the rotation boundary mint exactly one successor', async () => {
+  // rotateIfNeeded used to call mint() directly, bypassing the same
+  // withMintLock/BEGIN IMMEDIATE machinery currentSigner uses - harmless
+  // in-process only because server.js's withOverlapGuard already stops one
+  // process's own sweep ticks from overlapping. This proves the lock itself
+  // now covers rotateIfNeeded too, the same way the test above proves it for
+  // currentSigner's first-mint path.
+  const first = await currentSigner(NOW);
+  const atRetires = NOW + KEY_ROTATION_MS;
+
+  const minted = await Promise.all(Array.from({ length: 8 }, () => rotateIfNeeded(atRetires)));
+  const kids = new Set(minted.filter(Boolean));
+  assert.equal(kids.size, 1, 'every concurrent rotation must converge on one successor key');
+  assert.notEqual([...kids][0], first.kid);
+
+  const rows = await dbAll('SELECT kid FROM signing_keys');
+  assert.equal(rows.length, 2, 'exactly one successor minted, alongside the original key');
+});
+
 test('concurrent same-process calls with no key yet mint exactly one', async () => {
   // A single SQLite connection cannot have two BEGIN IMMEDIATE transactions
   // open at once (a second throws "cannot start a transaction within a
