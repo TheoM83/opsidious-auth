@@ -1,0 +1,12 @@
+node_modules
+data
+backups
+logs
+.git
+.github
+*.md
+.env
+.env.*
+Dockerfile*
+docker-compose*
+test
