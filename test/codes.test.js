@@ -115,13 +115,23 @@ test('a code presented with a different redirect URI is refused', async () => {
   assert.equal(result.reason, 'redirect_mismatch');
 });
 
-test('a mismatched code is still spent, not left reusable', async () => {
-  // Otherwise an attacker could probe with a wrong client id and then use the
-  // code properly.
+test('a third party never transitions a code it does not own: the rightful client can still redeem it', async () => {
+  // Previously any registered client presenting someone else's code, with
+  // its own valid credentials, burned the row to REJECTED - the rightful
+  // owner's later, legitimate exchange then failed too. The guarded UPDATE
+  // now carries the ownership predicates, so a caller that does not own the
+  // row can never move it out of UNUSED, only classify why it didn't match.
   const code = await issue();
-  await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
-  const row = await dbGet('SELECT used FROM codes WHERE code_hash IS NOT NULL');
-  assert.equal(row.used, 3);
+  const foreign = await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
+  assert.equal(foreign.ok, false);
+  assert.equal(foreign.reason, 'client_mismatch');
+
+  const row = await dbGet('SELECT used, client_id FROM codes WHERE code_hash IS NOT NULL');
+  assert.equal(row.used, 0, 'a party that does not own the code must never transition it');
+  assert.equal(row.client_id, CLIENT, 'not tombstoned - the row was never touched');
+
+  const owner = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
+  assert.equal(owner.ok, true, 'the rightful owner can still redeem the code afterward');
 });
 
 test('an unknown code is refused without an error', async () => {
@@ -136,21 +146,26 @@ test('the sweep removes expired codes', async () => {
   assert.equal(await sweepCodes(NOW + 61_000), 1);
 });
 
-test('a code rejected for client mismatch, then presented legitimately: no session deletion', async () => {
+test('a code rejected for its own wrong redirect URI, then presented legitimately: no session deletion', async () => {
   // A mismatch proves nothing — the code should not be deleted, and the SSO session
   // should not be terminated. The code is marked spent (rejected), but a later
   // legitimate presentation is still a replay and does not kill the user's session.
+  //
+  // Uses the owning client presenting its own wrong redirect URI, not a
+  // third party: a third party's presentation no longer burns the code at
+  // all (see the test above), so it can no longer produce a REJECTED row to
+  // replay against.
   const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
   const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
   const code = await issue({ ssoSessionId: session.id });
 
-  // First presentation: wrong client ID
-  const wrongClient = await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
-  assert.equal(wrongClient.ok, false);
-  assert.equal(wrongClient.reason, 'client_mismatch');
+  // First presentation: own client, wrong redirect URI
+  const wrongRedirect = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK + '?x=1' }, NOW);
+  assert.equal(wrongRedirect.ok, false);
+  assert.equal(wrongRedirect.reason, 'redirect_mismatch');
   assert.ok(await resolveSession(cookieValue, NOW), 'session still alive after mismatch');
 
-  // Second presentation: correct client ID - still a replay, but session survives
+  // Second presentation: correct client and redirect - still a replay, but session survives
   const replay = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
   assert.equal(replay.ok, false);
   assert.equal(replay.reason, 'replayed');
@@ -298,9 +313,10 @@ test('a rejected code is tombstoned too, not just a successfully consumed one', 
 
 test('a third presentation of a rejected-then-replayed code still returns replayed', async () => {
   // The code row persists until sweep, so a third presentation should still
-  // return 'replayed', not 'unknown'.
+  // return 'replayed', not 'unknown'. Own-client wrong redirect, not a third
+  // party, is what still produces a REJECTED row to replay against.
   const code = await issue();
-  await consumeCode(code, { clientId: 'otherapp', redirectUri: CALLBACK }, NOW);
+  await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK + '?x=1' }, NOW);
   const second = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
   assert.equal(second.reason, 'replayed');
   const third = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
