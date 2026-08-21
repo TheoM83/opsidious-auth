@@ -22,19 +22,42 @@ name, collect it yourself.
 ## Install
 
 ```bash
-npm install github:theom83/opsidious-auth#v1.0.0 --workspace-root
+npm install github:TheoM83/opsidious-auth
 ```
 
-This package has one real dependency, `jose`; Express and `cookie-parser`
-are peer dependencies of whatever application installs it.
+```js
+import { opsidiousAuth } from 'opsidious-auth/client';
+```
+
+**The install specifier and the import specifier are different, and that is
+not a typo.** npm has no subdirectory support for git dependencies: no
+variant of `npm install` can fetch `client/` on its own, so what you install
+is the repository's root package, `opsidious-auth`, which exports this client
+as the subpath `./client`. The name at the top of this file,
+`opsidious-auth-client`, is what `client/package.json` declares and what an
+npm release would be called; **after a git install it resolves to nothing.**
+If `require.resolve('opsidious-auth-client')` is what you tried, that is why
+it failed.
+
+Pin a tag or a commit SHA in anything you deploy —
+`npm install github:TheoM83/opsidious-auth#v1.0.0` — the bare form above
+tracks `main`.
+
+What that install costs, stated plainly: it brings the whole service with it,
+including `sqlite3` and its native build, for a client that is one file. This
+package declares one real dependency, `jose`, and takes `express` and
+`cookie-parser` as peer dependencies of the application installing it — but
+via a git dependency you get the service's tree too, around 21 MB of
+`node_modules`. That is npm's limitation, not a design choice; publishing
+this package to npm under its own name is what removes it.
 
 ## Use
 
-The smallest working integration is three routes:
+The smallest working integration is two routes:
 
 ```js
 import cookieParser from 'cookie-parser';
-import { opsidiousAuth } from 'opsidious-auth-client';
+import { opsidiousAuth } from 'opsidious-auth/client';
 
 app.use(cookieParser()); // required: the client stores its transaction in a cookie
 
@@ -144,8 +167,15 @@ never widen which issuer a token is accepted from. If you don't pass
 | `invalid_state`                                          | no transaction cookie, or it didn't match the callback's `state`. Usually an expired or replayed callback link.                                                                                                                                            |
 | `invalid_nonce`                                          | the ID token's `nonce` didn't match this transaction's.                                                                                                                                                                                                    |
 | `invalid_request`                                        | the callback arrived with no `code`.                                                                                                                                                                                                                       |
-| `invalid_grant`                                          | the code exchange failed, the token didn't verify, or the auth service didn't respond in time. One shape covers all of these on purpose, the same way the service's own `/token` endpoint does — so a caller can't use the error to probe what went wrong. |
+| `invalid_grant`                                          | the code exchange failed, the token didn't verify, or the auth service didn't respond in time. One shape covers every server-side failure on purpose, so a caller cannot use the error to probe what went wrong — **including the two the service itself does distinguish**: it answers `401 invalid_client` for a wrong or missing secret and `400 invalid_grant` for a bad code, and this client collapses both into `invalid_grant`. |
 | any other value (e.g. `access_denied`, `login_required`) | passed through unchanged from the auth service's own callback.                                                                                                                                                                                             |
+
+**If a brand-new integration answers `invalid_grant` on every single
+attempt**, that is almost always configuration rather than an attack, and
+the deliberate opacity above is working against you: check `clientSecret`
+first, then that `redirectUri` matches the registered one **byte for byte**
+(a trailing slash is a different URI), then that `issuer` is the service's
+public URL. The auth service's own log line names which of the two it was.
 
 ## Timeouts and resilience
 
