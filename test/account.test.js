@@ -54,6 +54,11 @@ test('the page says what deleting here does not reach', async () => {
   assert.match(page.text, /ne seront pas effacées/i);
 });
 
+test("the account page is not cacheable - it embeds this session's CSRF token", async () => {
+  const { page } = await signedIn();
+  assert.match(page.headers['cache-control'], /no-store/);
+});
+
 test('the page never displays the Google account or any identifier', async () => {
   const { page, account } = await signedIn();
   assert.ok(!page.text.includes(account.id));

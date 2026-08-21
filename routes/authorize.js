@@ -23,6 +23,12 @@ export function redirectBack(res, redirectUri, params) {
 
 router.get('/authorize', async (req, res, next) => {
   try {
+    // Every response this handler can produce is either a redirect carrying
+    // a fresh code in `Location` or an error page - a cache (browser or
+    // intermediary) replaying either one later is not something to allow,
+    // even though nothing here is currently observed leaking through one.
+    res.setHeader('Cache-Control', 'no-store');
+
     const clientId = String(req.query.client_id ?? '');
     const redirectUri = String(req.query.redirect_uri ?? '');
 

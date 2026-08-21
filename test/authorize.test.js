@@ -45,6 +45,16 @@ test('with no session it redirects straight to Google', async () => {
   assert.equal(res.text.includes('<html'), false, 'nothing is rendered');
 });
 
+test('the response is not cacheable, whether it redirects with a code or asks Google', async () => {
+  // /authorize's redirect carries a fresh code in Location - a cache
+  // replaying it later would be handing out someone else's code.
+  const withSession = await authorize().set('Cookie', await sessionCookie());
+  assert.match(withSession.headers['cache-control'], /no-store/);
+
+  const toGoogle = await authorize();
+  assert.match(toGoogle.headers['cache-control'], /no-store/);
+});
+
 test('the request is parked so the Google round trip can resume it', async () => {
   await authorize({ state: 'parked-state' });
   const rows = await dbAll('SELECT * FROM auth_requests ORDER BY expires_at DESC');

@@ -37,16 +37,28 @@ function checkCsrf(req, cookieValue) {
 
 router.get('/account', async (req, res, next) => {
   try {
+    // The page embeds this session's CSRF token (derived from the cookie
+    // value - see csrfFor above). A cache serving a stale copy of this page
+    // to a different visitor is not something to allow, even though nothing
+    // here is currently observed leaking through one.
+    res.setHeader('Cache-Control', 'no-store');
+
     const current = await requireSession(req, res);
     if (!current) return undefined;
 
     // Nothing identifying is rendered - there is nothing worth rendering.
-    res.render(join(res.app.get('views'), 'account.ejs'), { csrf: csrfFor(current.cookieValue) },
+    res.render(
+      join(res.app.get('views'), 'account.ejs'),
+      { csrf: csrfFor(current.cookieValue) },
       (err, body) => {
         if (err) return next(err);
-        res.render(join(res.app.get('views'), 'layout.ejs'), { title: 'Compte Opsidious', body },
-          (e, html) => (e ? next(e) : res.send(html)));
-      });
+        res.render(
+          join(res.app.get('views'), 'layout.ejs'),
+          { title: 'Compte Opsidious', body },
+          (e, html) => (e ? next(e) : res.send(html))
+        );
+      }
+    );
   } catch (err) {
     next(err);
   }
