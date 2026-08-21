@@ -5,6 +5,8 @@ import { app, initForTest } from '../app.js';
 import { closeDatabase, dbAll, dbGet } from '../lib/database.js';
 import { __setTransport } from '../lib/google.js';
 import { SSO_COOKIE_NAME } from '../lib/config.js';
+import { signInWithGoogleSub } from '../lib/accounts.js';
+import { createSession, resolveSession } from '../lib/sessions.js';
 import { registerTestClient, CALLBACK } from './helpers.js';
 
 const GOOGLE_SUB = '109384756102938475610';
@@ -73,7 +75,11 @@ test('the account is created once across repeated sign-ins', async () => {
   await completeFlow(await startFlow());
   await completeFlow(await startFlow());
   const after = (await dbAll('SELECT id FROM accounts')).length;
-  assert.equal(after, before, 'no new account row was created across two sign-ins with the same Google subject');
+  assert.equal(
+    after,
+    before,
+    'no new account row was created across two sign-ins with the same Google subject'
+  );
 });
 
 test('the parked request is consumed and cannot be reused', async () => {
@@ -130,12 +136,46 @@ test('a user who cancels at Google is sent back cleanly', async () => {
       throw new Error('Google must not be contacted on the cancel path');
     }
   });
-  const res = await request(app)
-    .get('/callback/google')
-    .query({ error: 'access_denied', state: id });
+  const res = await request(app).get('/callback/google').query({ error: 'access_denied', state: id });
   assert.equal(contacted, false, 'the cancel path must not attempt the Google exchange');
   assert.equal(res.status, 302);
   assert.equal(new URL(res.headers.location).searchParams.get('error'), 'access_denied');
+});
+
+test('re-authenticating (prompt=login) revokes the session named by the cookie the browser still holds', async () => {
+  // A live session never reaches Google at all except via prompt=login
+  // forcing it past one (routes/authorize.js) - so the browser completing a
+  // round trip through Google while still presenting an old SSO cookie only
+  // happens on exactly this path. Left unrevoked, that old session would
+  // keep working under a cookie the browser itself has already replaced,
+  // for the rest of its own 14-day life.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('old-google-sub');
+  const { cookieValue: oldCookie } = await createSession(account.id, pairwiseSalt);
+  assert.ok(await resolveSession(oldCookie), 'the pre-existing session is live before re-authentication');
+
+  const started = await request(app)
+    .get('/authorize')
+    .query({ client_id: 'defnote', redirect_uri: CALLBACK, state: 's1', nonce: 'n1', prompt: 'login' })
+    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}`);
+  const requestId = new URL(started.headers.location).searchParams.get('state');
+
+  const parked = await dbGet('SELECT google_nonce FROM auth_requests WHERE id = ?', [requestId]);
+  __setTransport({
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ id_token: 'stub' }) }),
+    verifyImpl: async () => ({ payload: { sub: GOOGLE_SUB, nonce: parked.google_nonce } })
+  });
+  const res = await request(app)
+    .get('/callback/google')
+    .query({ code: 'google-code', state: requestId })
+    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}`); // the browser still holds its old cookie mid-flow
+
+  const newCookie = res.headers['set-cookie']
+    .find((c) => c.startsWith(SSO_COOKIE_NAME))
+    .split(';')[0]
+    .split('=')[1];
+  assert.notEqual(newCookie, oldCookie, 'a fresh cookie is issued');
+  assert.equal(await resolveSession(oldCookie), null, 'the old session is revoked, not orphaned');
+  assert.ok(await resolveSession(newCookie), 'the new session is live');
 });
 
 test('the second sign-in is silent and never contacts Google again', async () => {

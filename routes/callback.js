@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { dbGet, dbRun } from '../lib/database.js';
 import { exchangeCode, verifyGoogleIdToken } from '../lib/google.js';
 import { signInWithGoogleSub } from '../lib/accounts.js';
-import { createSession } from '../lib/sessions.js';
+import { createSession, deleteSessionByCookie } from '../lib/sessions.js';
 import { issueCode } from '../lib/codes.js';
 import { pairwiseSubject } from '../lib/crypto.js';
 import { renderError } from '../lib/middleware.js';
@@ -65,6 +65,17 @@ router.get('/callback/google', async (req, res, next) => {
     }
 
     const { account, pairwiseSalt } = await signInWithGoogleSub(googleSub);
+
+    // A completed round trip through Google only ever lands here when there
+    // was no existing session (nothing to revoke below) or prompt=login
+    // forced re-authentication past one (routes/authorize.js) - a live
+    // session never reaches Google at all otherwise. In the second case, the
+    // cookie this browser still presents names a session that is about to be
+    // replaced by a fresh one. Left alone, that old session - and the old
+    // cookie value hashed into `token_hash` - would keep working for the
+    // rest of its own 14-day life even though the browser itself has already
+    // moved on to a new cookie.
+    await deleteSessionByCookie(req.cookies?.[SSO_COOKIE_NAME]);
     const { cookieValue, session } = await createSession(account.id, pairwiseSalt);
 
     const code = await issueCode({
