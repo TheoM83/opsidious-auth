@@ -4,6 +4,7 @@ import { initDatabase, closeDatabase, dbRun, dbGet, dbAll } from '../lib/databas
 import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession, resolveSession } from '../lib/sessions.js';
 import { issueCode, consumeCode, sweepCodes } from '../lib/codes.js';
+import { CODE_RECOVERY_GRACE_MS } from '../lib/config.js';
 
 const NOW = 1_800_000_000_000;
 const CLIENT = 'defnote';
@@ -208,6 +209,65 @@ test('a successful consumption tombstones the row: no app, no pairwise subject, 
   assert.equal(replay.ok, false);
   assert.equal(replay.reason, 'replayed');
   assert.equal(await resolveSession(cookieValue, NOW), null, 'replay still revokes the session');
+});
+
+test('an IN_FLIGHT row still within the grace period is a genuine leak, not a wedge', async () => {
+  // What consumeCode's normal guarded UPDATE would produce for a real
+  // concurrent presentation: the row is claimed (used=1) and nothing has
+  // resolved it yet.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+  await dbRun('UPDATE codes SET used = 1 WHERE sso_session_id = ?', [session.id]);
+
+  const result = await consumeCode(
+    code,
+    { clientId: CLIENT, redirectUri: CALLBACK },
+    NOW + CODE_RECOVERY_GRACE_MS - 1
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'replayed');
+  assert.equal(
+    await resolveSession(cookieValue, NOW),
+    null,
+    'still within grace: read as a leak, session killed'
+  );
+});
+
+test('an IN_FLIGHT row past the grace period is recovered, not treated as a leak', async () => {
+  // Exactly what a process death between the guarded UPDATE and its own
+  // resolution leaves behind: a row wedged at used=1 forever, with nothing
+  // else ever moving it out.
+  const { account, pairwiseSalt } = await signInWithGoogleSub('109384756102938475610', NOW);
+  const { cookieValue, session } = await createSession(account.id, pairwiseSalt, NOW);
+  const code = await issue({ ssoSessionId: session.id });
+  await dbRun('UPDATE codes SET used = 1 WHERE sso_session_id = ?', [session.id]);
+
+  const retryAt = NOW + CODE_RECOVERY_GRACE_MS + 1;
+  const result = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, retryAt);
+  assert.equal(result.ok, true, 'a legitimate retry past the grace period must succeed, not 400');
+  assert.equal(result.row.app_sub, 'sub-abc');
+  assert.ok(
+    await resolveSession(cookieValue, NOW),
+    'recovery is a real resolution, not a replay - the session must survive'
+  );
+
+  // And the row is now genuinely spent: presenting it again is a real replay.
+  const again = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, retryAt);
+  assert.equal(again.ok, false);
+  assert.equal(again.reason, 'replayed');
+});
+
+test('the recovery path still refuses a wedged code that would not have validated anyway', async () => {
+  // Recovery reruns the same validation, not a bypass of it: a wedge whose
+  // owning client presents the wrong redirect URI is still rejected.
+  const code = await issue();
+  await dbRun('UPDATE codes SET used = 1 WHERE code_hash IS NOT NULL');
+
+  const retryAt = NOW + CODE_RECOVERY_GRACE_MS + 1;
+  const result = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK + '?x=1' }, retryAt);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'redirect_mismatch');
 });
 
 test('a rejected code is tombstoned too, not just a successfully consumed one', async () => {
