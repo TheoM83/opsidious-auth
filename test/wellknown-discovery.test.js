@@ -1,0 +1,70 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import request from 'supertest';
+import { app, initForTest } from '../app.js';
+import { closeDatabase } from '../lib/database.js';
+import { ISSUER, PUBLIC_URL } from '../lib/config.js';
+
+before(async () => {
+  await initForTest();
+});
+after(async () => {
+  await closeDatabase();
+});
+
+const get = () => request(app).get('/.well-known/openid-configuration');
+
+test('the discovery document points at endpoints that actually exist', async () => {
+  const res = await get();
+  assert.equal(res.status, 200);
+  const d = res.body;
+  assert.equal(d.issuer, ISSUER);
+
+  // Every advertised endpoint must answer. A discovery document that names a
+  // route the server does not serve is worse than none: a standard library
+  // configures itself against the promise and fails at the call.
+  // Probed with the method the endpoint actually accepts: /token is POST-only,
+  // so a GET there correctly falls through to 404 and would make this check
+  // fail for the wrong reason.
+  for (const [key, expectedPath, method] of [
+    ['authorization_endpoint', '/authorize', 'get'],
+    ['token_endpoint', '/token', 'post'],
+    ['jwks_uri', '/.well-known/jwks.json', 'get']
+  ]) {
+    assert.equal(d[key], `${PUBLIC_URL}${expectedPath}`, `${key} must be ${expectedPath}`);
+    const probe = await request(app)[method](expectedPath);
+    assert.notEqual(probe.status, 404, `${expectedPath} is advertised but answers 404`);
+  }
+});
+
+test('it advertises pairwise subjects, which is the whole product', async () => {
+  const { body } = await get();
+  assert.deepEqual(body.subject_types_supported, ['pairwise']);
+});
+
+test('it promises no capability this service lacks', async () => {
+  const { body } = await get();
+
+  // openid only: the service never asks Google for email or profile, so it
+  // could not populate those claims even if a client requested them.
+  assert.deepEqual(body.scopes_supported, ['openid']);
+  assert.ok(!body.claims_supported.includes('email'));
+  assert.ok(!body.claims_supported.includes('name'));
+
+  // Deliberate absences (spec section 1). Advertising any of these would make a
+  // standard client attempt a flow this server does not implement.
+  assert.equal(body.userinfo_endpoint, undefined, 'there is no userinfo endpoint');
+  assert.equal(body.registration_endpoint, undefined, 'dynamic registration is a non-goal');
+  assert.equal(body.code_challenge_methods_supported, undefined, 'PKCE is a non-goal');
+  assert.ok(!(body.grant_types_supported || []).includes('refresh_token'));
+  assert.deepEqual(body.response_types_supported, ['code']);
+  assert.deepEqual(body.id_token_signing_alg_values_supported, ['RS256']);
+});
+
+test('the front door is a page, not a 404', async () => {
+  const res = await request(app).get('/');
+  assert.equal(res.status, 200);
+  assert.match(res.headers['content-type'], /html/);
+  // It must route a curious visitor onward rather than dead-end them.
+  assert.match(res.text, /\/account/);
+});

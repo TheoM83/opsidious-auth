@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title><%= title %> — Opsidious</title>
+    <%# Le suffixe est omis quand le titre est deja "Opsidious", sinon l'onglet
+        affiche "Opsidious — Opsidious" sur la page d'accueil. %>
+    <title><%= title === 'Opsidious' ? title : title + ' — Opsidious' %></title>
     <meta name="robots" content="noindex" />
     <meta name="theme-color" content="#17171e" />
     <link rel="stylesheet" href="/styles.css" />
