@@ -18,10 +18,19 @@ import { initDatabase, closeDatabase } from '../lib/database.js';
 import { createClient } from '../lib/clients.js';
 import { DB_PATH } from '../lib/config.js';
 
-const [id, name, ...redirectUris] = process.argv.slice(2);
+// `--secret-only` prints the secret and nothing else on stdout, so a caller can
+// capture it without the surrounding explanation. It exists for the
+// registration workflow, which masks what it captures and writes it straight
+// into the consuming repository's secrets - a secret that is never rendered is
+// a secret nobody has to remember not to paste somewhere.
+const argv = process.argv.slice(2);
+const secretOnly = argv.includes('--secret-only');
+const [id, name, ...redirectUris] = argv.filter((a) => a !== '--secret-only');
 
 if (!id || !name || redirectUris.length === 0) {
-  console.error('usage: npm run register-client -- <client_id> <name> <redirect_uri> [redirect_uri...]');
+  console.error(
+    'usage: npm run register-client -- [--secret-only] <client_id> <name> <redirect_uri> [redirect_uri...]'
+  );
   process.exit(1);
 }
 
@@ -33,6 +42,15 @@ console.error(`target database: ${DB_PATH || '(default: ./data/opsidious-auth.db
 await initDatabase();
 try {
   const { secret } = await createClient({ id, name, redirectUris });
+
+  if (secretOnly) {
+    // Everything explanatory goes to stderr; stdout carries the secret alone.
+    console.error(`registered ${id} with ${redirectUris.length} redirect URI(s)`);
+    process.stdout.write(secret);
+    await closeDatabase();
+    process.exit(0);
+  }
+
   console.log('');
   console.log(`  client_id      ${id}`);
   console.log(`  client_secret  ${secret}`);

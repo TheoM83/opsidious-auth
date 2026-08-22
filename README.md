@@ -331,6 +331,29 @@ docker exec -it opsidious-auth node scripts/register-client.mjs \
 Redirect URIs are matched **exactly** — a trailing slash is a different URI
 from one without.
 
+### Registering without ever seeing the secret
+
+The command above prints the secret to a terminal, and from there it is copied
+by hand into wherever the application keeps its configuration. Every step of
+that is a place the value can be left behind: scrollback, a shell history, a
+paste buffer, a screenshot.
+
+The **Register a client** workflow does the same registration and never renders
+the value. It runs the script in `--secret-only` mode, masks what it captures
+before anything else can print it, and hands it to `gh secret set`, which
+encrypts it with the target repository's public key before sending. The secret
+goes from the server straight into the consuming repository's GitHub secrets
+without being displayed to anyone.
+
+Run it from the Actions tab with four inputs — the client id, its name, its
+exact redirect URI, and the repository that should receive the secret. It needs
+`REGISTRAR_TOKEN`, a token carrying `secrets: write` on that repository;
+`GITHUB_TOKEN` deliberately cannot write to another repository, so this stays a
+separately-granted capability rather than something the workflow has by default.
+
+Re-running it against an existing client id rotates the secret and overwrites
+the stored one.
+
 ## Self-hosting
 
 Nothing is hardcoded to any domain: `PUBLIC_URL` decides the issuer, the

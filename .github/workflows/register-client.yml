@@ -1,0 +1,94 @@
+# Registers a relying application and writes its secret straight into that
+# application's own GitHub secrets. Nobody ever sees the value.
+#
+# The obvious version of this workflow - run the script, print the secret, copy
+# it by hand - would be WORSE than the `docker exec` it replaces. Actions logs
+# are readable by anyone with read access to the repository, and this repository
+# is public. So the secret is captured, masked before anything can render it,
+# and handed to the GitHub API. It is never printed, never echoed, never an
+# output, and never leaves the runner in any other direction.
+name: Register a client
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: 'Client id, e.g. defnote. Becomes the `aud` of every token issued to it.'
+        required: true
+      name:
+        description: 'Human-readable name, e.g. Defnote'
+        required: true
+      redirect_uri:
+        description: 'Exact callback URL. Matched EXACTLY - a trailing slash is a different URI.'
+        required: true
+      target_repo:
+        description: 'Repository whose secrets receive the value, e.g. TheoM83/defnote'
+        required: true
+      secret_name:
+        description: 'Name of the secret to create there'
+        required: true
+        default: 'OPSIDIOUS_CLIENT_SECRET'
+
+# Nothing here needs write access to THIS repository.
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register on mercury and store the secret in the target repository
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_USER: ${{ secrets.SERVER_USERNAME }}
+          # A PAT with `secrets: write` on the target repository. GITHUB_TOKEN
+          # cannot write to another repository, which is exactly the boundary
+          # that makes this a deliberate, separately-granted capability.
+          GH_TOKEN: ${{ secrets.REGISTRAR_TOKEN }}
+          CLIENT_ID: ${{ inputs.client_id }}
+          CLIENT_NAME: ${{ inputs.name }}
+          REDIRECT_URI: ${{ inputs.redirect_uri }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          SECRET_NAME: ${{ inputs.secret_name }}
+        run: |
+          # No `set -x` anywhere below: tracing would echo the command line the
+          # secret travels on, defeating the whole point of this workflow.
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "REGISTRAR_TOKEN is not set. It needs 'secrets: write' on ${TARGET_REPO}." >&2
+            exit 1
+          fi
+
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # `--secret-only` puts the secret alone on stdout and everything
+          # explanatory on stderr, so this capture takes the value and nothing
+          # else. stderr still reaches the log, which is where the useful
+          # non-secret confirmation comes from.
+          SECRET="$(ssh -i ~/.ssh/id -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "docker exec opsidious-auth node scripts/register-client.mjs --secret-only \
+               '$CLIENT_ID' '$CLIENT_NAME' '$REDIRECT_URI'")"
+
+          # Masked before it can appear anywhere else. Everything after this
+          # point renders it as *** even if something echoes it by accident.
+          echo "::add-mask::$SECRET"
+
+          if [ -z "$SECRET" ]; then
+            echo "registration produced no secret - see the stderr above" >&2
+            exit 1
+          fi
+
+          # `gh secret set` encrypts with the target repository's public key
+          # before sending, so the plaintext never crosses the network.
+          printf '%s' "$SECRET" | gh secret set "$SECRET_NAME" --repo "$TARGET_REPO"
+
+          rm -f ~/.ssh/id
+
+          echo "Registered '$CLIENT_ID' and stored its secret as $SECRET_NAME in $TARGET_REPO."
+          echo "The value was never printed here and cannot be retrieved again -"
+          echo "only its hash is stored on the server. Re-run this workflow to rotate it."
