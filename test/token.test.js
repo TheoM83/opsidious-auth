@@ -58,14 +58,32 @@ test('a valid exchange returns a verifiable ID token', async () => {
   assert.equal(payload.nonce, 'n1');
 });
 
-test('no access token is issued', async () => {
-  // There is no Opsidious API to call on a user's behalf. Returning an unused
-  // access_token would be cargo cult.
+test('the response carries an access token, and it grants nothing', async () => {
+  // RFC 6749 section 5.1 and OIDC Core 3.1.3.3 make access_token REQUIRED.
+  // Omitting it was the original design decision - there is no Opsidious API
+  // to call on a user's behalf - and it broke every conformant client:
+  // openid-client refused the exchange with `"response" body "access_token"
+  // property must be a string`. Conformance costs one field; a response no
+  // standard library can parse costs the integration.
   const res = await exchange({ code: await freshCode() });
-  assert.equal(res.body.access_token, undefined);
+  assert.equal(typeof res.body.access_token, 'string');
+  assert.ok(res.body.access_token.length >= 32, 'must be opaque, not a placeholder');
+
+  // But it must stay inert. Two exchanges give two different values because
+  // nothing stores or looks at them, and no endpoint here accepts one as a
+  // credential - "there is no resource server" is the property that matters.
+  const second = await exchange({ code: await freshCode() });
+  assert.notEqual(second.body.access_token, res.body.access_token);
+
+  const asBearer = await request(app)
+    .get('/account')
+    .set('Authorization', `Bearer ${res.body.access_token}`);
+  assert.notEqual(asBearer.status, 200, 'the access token must not authenticate anything');
+
+  // refresh_token is optional, so it stays absent: there is no long-lived
+  // grant to refresh.
   assert.equal(res.body.refresh_token, undefined);
 });
-
 test('the response is not cacheable', async () => {
   const res = await exchange({ code: await freshCode() });
   assert.match(res.headers['cache-control'], /no-store/);

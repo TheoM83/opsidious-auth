@@ -129,10 +129,14 @@ anonymity guarantee, stated precisely enough to be tested.
 - **Authorization-code flow, RS256 ID tokens, a published JWKS.** Every
   token is signed with a key rotated automatically; a client verifies against
   `GET /.well-known/jwks.json`, keyed by `kid`.
-- **No `access_token`, no `refresh_token`.** There is no resource server
-  behind this service and nothing to refresh — it issues an ID token and
-  nothing else. A strict OIDC client library may object; this service's own
-  client will not.
+- **An inert `access_token`, and no `refresh_token`.** There is no resource
+  server behind this service, so the access token grants nothing: it is a fresh
+  random string, never stored, examined by no endpoint here. It is returned
+  because RFC 6749 §5.1 and OIDC Core §3.1.3.3 require it — omitting it was the
+  original design, and pointing the reference client (`openid-client`) at this
+  issuer failed the exchange outright with `"response" body "access_token"
+  property must be a string`. `refresh_token` is optional, so it stays absent:
+  there is no long-lived grant to refresh.
 - **A `__Host-` prefixed, host-only SSO cookie.** `__Host-opsid_sso` carries
   no `Domain` attribute, so it is never readable by a sibling subdomain —
   the whole subdomain-trust question disappears rather than needing to be

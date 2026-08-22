@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getClient, verifyClientSecret } from '../lib/clients.js';
 import { consumeCode } from '../lib/codes.js';
+import { randomToken } from '../lib/crypto.js';
 import { signIdToken } from '../lib/tokens.js';
 import { tokenLimiter } from '../lib/middleware.js';
 import { ID_TOKEN_TTL_S } from '../lib/config.js';
@@ -48,9 +49,31 @@ router.post('/token', tokenLimiter, async (req, res, next) => {
       nonce: result.row.nonce
     });
 
-    // No access_token, no refresh_token: there is no resource server behind
-    // this and no long-lived grant to refresh (spec §1, §6).
-    res.json({ id_token: idToken, token_type: 'Bearer', expires_in: ID_TOKEN_TTL_S });
+    // `access_token` is REQUIRED by RFC 6749 §5.1 and OIDC Core §3.1.3.3, so it
+    // is present even though nothing behind this service accepts one.
+    //
+    // The spec's §1 called omitting it the honest choice - there is no
+    // Opsidious API to call on a user's behalf, so an unused access token
+    // looked like cargo cult. That reasoning was right about the purpose and
+    // wrong about the cost, and the cost was only measured later: pointing the
+    // reference client (`openid-client`, on `oauth4webapi`) at this issuer
+    // failed the exchange outright with `"response" body "access_token"
+    // property must be a string`. Adding this one field turned that into a
+    // completed flow - discovery, exchange, signature and nonce all verified by
+    // the library itself. A response no conformant client can parse is a worse
+    // kind of cargo cult than an unused field.
+    //
+    // It is deliberately inert: a fresh random string, never stored, never
+    // examined, accepted by no endpoint here. Nothing can be done with it,
+    // which is exactly what "there is no resource server" means in practice.
+    // `refresh_token` stays absent - it is optional, so omitting it costs
+    // nothing and there is no long-lived grant to refresh.
+    res.json({
+      access_token: randomToken(32),
+      id_token: idToken,
+      token_type: 'Bearer',
+      expires_in: ID_TOKEN_TTL_S
+    });
   } catch (err) {
     next(err);
   }

@@ -653,9 +653,19 @@ difference between a five-minute fix and an afternoon. The secret itself is
 what must not leak, and a wrong secret, a missing secret and an unregistered
 id are identical on the wire. `test/token.test.js` pins this.
 
-**Known deviation from OIDC:** no `access_token` is returned, because there is
-no resource server to call. A strict OIDC client library would object; the
-Opsidious client library will not.
+**`access_token` — decision reversed after measurement.** The original design
+returned none, on the reasoning that an unused token for a service with no
+resource server is cargo cult. That was right about the purpose and wrong about
+the cost. RFC 6749 §5.1 and OIDC Core §3.1.3.3 make the field REQUIRED, and the
+reference client (`openid-client`, on `oauth4webapi`) refuses the exchange
+outright: `"response" body "access_token" property must be a string`. Adding the
+field turned that failure into a completed flow, with discovery, exchange,
+signature and nonce all verified by the library. A response no conformant client
+can parse is a worse cargo cult than an unused field.
+
+The token returned is deliberately inert: a fresh random string, never
+persisted, accepted by no endpoint here. `refresh_token` remains absent — it is
+optional, and there is no long-lived grant to refresh.
 
 ### `GET /.well-known/jwks.json`
 
