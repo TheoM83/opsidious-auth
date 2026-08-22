@@ -346,7 +346,9 @@ héberger ni à charger.
 C'est un lien, pas un bouton javascript : la connexion est une redirection, et
 il n'y a aucun script tiers. Le bouton suit `prefers-color-scheme` tout seul ;
 `opsid-signin--sombre` le force en sombre, `opsid-signin--court` retire la
-mention pour les emplacements serrés.
+mention pour les emplacements serrés, `opsid-signin--bloc` le passe en pleine
+largeur pour un formulaire qui aligne ses contrôles. Par défaut il s'ajuste à
+son texte : un bouton de connexion pleine largeur a l'air d'un bandeau.
 
 Il porte « Sans e-mail, sans nom » sous son libellé. C'est ce qui le distingue
 des autres boutons de connexion : eux disent avec QUI, celui-ci dit ce qu'il ne
