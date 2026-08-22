@@ -66,16 +66,23 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Redeploy on the server. continue-on-error so a missing secret still
-      # leaves the image published. Only for the CI-gated path, not a manual
-      # workflow_dispatch - matches this step's previous `push`-only scope.
       # This repository deploys itself. The server's repository holds neither
       # this stack's compose fragment nor its secrets - see
       # mercury/docs/architecture-deploiement.md. The compose project name
       # `opsidious-auth` is part of that contract: it namespaces the volumes.
+      #
+      # This step used to be gated on `workflow_run` alone, so a manual
+      # `workflow_dispatch` built and published the image and then quietly
+      # skipped the deploy - a green run that changed nothing on the server.
+      # It also carried `continue-on-error: true`, which turned a failed deploy
+      # into a green run as well. Both were silent, and together they made
+      # "the workflow succeeded" say nothing about whether the service is
+      # actually running.
+      #
+      # The image is pushed by the step above, so letting this one fail loudly
+      # costs nothing: the image is already published either way, and a red run
+      # is the only honest report when the server was not updated.
       - name: Deploy on mercury (SSH)
-        if: ${{ github.event_name == 'workflow_run' }}
-        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
