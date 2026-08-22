@@ -1,29 +1,89 @@
-<section class="panel">
-  <h1>Compte Opsidious</h1>
-  <p class="muted">
-    Vous êtes connecté. Opsidious ne connaît de vous qu’un identifiant Google opaque —
-    ni votre adresse e-mail, ni votre nom.
-  </p>
+<article class="ledger">
+  <header class="ledger-head">
+    <h1>Ce que nous savons de vous</h1>
+    <p class="lede">
+      Six champs. Les voici tels qu’ils sont enregistrés, sans reformulation.
+      Un seul apprend quelque chose à qui les lit — il est signalé.
+    </p>
+  </header>
 
-  <form method="post" action="/logout">
-    <input type="hidden" name="csrf" value="<%= csrf %>" />
-    <button class="btn" type="submit">Se déconnecter</button>
-  </form>
+  <section aria-labelledby="row-title">
+    <h2 class="eyebrow" id="row-title">Votre ligne</h2>
 
-  <hr />
+    <ol class="fields">
+      <% row.forEach(function (f) { %>
+        <li class="field<%= f.reveals ? ' field--reveals' : '' %>">
+          <div class="field-name"><%= f.field %></div>
 
-  <h2>Supprimer ce compte</h2>
-  <p class="muted">
-    Vous ne pourrez plus vous connecter à aucune application Opsidious.
-    <strong>Les données que ces applications détiennent ne seront pas effacées</strong> :
-    chacune vous connaît sous un identifiant différent, et Opsidious est incapable de
-    leur dire lequel supprimer. Supprimez d’abord votre compte dans chaque application,
-    puis ici.
-  </p>
-  <form method="post" action="/account/delete">
-    <input type="hidden" name="csrf" value="<%= csrf %>" />
-    <label class="muted" for="confirm">Saisissez SUPPRIMER pour confirmer</label>
-    <input id="confirm" name="confirm" autocapitalize="characters" autocomplete="off" required />
-    <button class="btn danger" type="submit">Supprimer définitivement</button>
-  </form>
-</section>
+          <div class="field-shape"><code><%= f.shape %></code></div>
+
+          <p class="field-kind"><%= f.kind %></p>
+
+          <p class="verdict">
+            <% if (f.reveals) { %>
+              <span class="verdict-mark" aria-hidden="true"></span><%= f.reveals %>
+            <% } else { %>
+              N’apprend rien sur vous à qui lit cette base.
+            <% } %>
+          </p>
+        </li>
+      <% }); %>
+    </ol>
+  </section>
+
+  <section class="absent" aria-labelledby="absent-title">
+    <h2 class="eyebrow" id="absent-title">Ce qui n’existe nulle part</h2>
+    <ul>
+      <li>Votre adresse e-mail — nous ne la demandons pas à Google.</li>
+      <li>Votre nom — même chose.</li>
+      <li>Votre identifiant Google en clair — seule son empreinte est gardée.</li>
+      <li>Votre sel pairwise en clair — il est scellé sous une clé que nous ne conservons pas.</li>
+    </ul>
+
+    <p class="cannot">
+      <strong>Nous ne pouvons pas vous dire quelles applications vous utilisez.</strong>
+      Chacune vous connaît sous un identifiant différent, calculé à la volée et jamais
+      enregistré. Aucune table, ici, ne relie votre compte à une application. Cette page
+      ne vous cache pas cette liste : elle n’existe pas.
+    </p>
+  </section>
+
+  <section class="acts" aria-labelledby="acts-title">
+    <h2 class="eyebrow" id="acts-title">Agir</h2>
+
+    <form method="post" action="/logout" class="act">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <div class="act-text">
+        <h3>Se déconnecter</h3>
+        <p>Ferme ce navigateur-ci. Votre compte et vos autres sessions restent intacts.</p>
+      </div>
+      <button class="btn" type="submit">Se déconnecter</button>
+    </form>
+
+    <form method="post" action="/account/delete" class="act act--danger">
+      <input type="hidden" name="csrf" value="<%= csrf %>" />
+      <div class="act-text">
+        <h3>Supprimer ce compte</h3>
+        <p>
+          Efface la ligne ci-dessus et toutes vos sessions, définitivement. Vous ne
+          pourrez plus vous connecter à aucune application Opsidious.
+        </p>
+        <p class="warn">
+          Les données détenues par ces applications ne seront pas effacées. Nous serions
+          incapables de leur dire quel compte supprimer — c’est le prix de l’anonymat
+          décrit plus haut. Supprimez d’abord votre compte dans chaque application.
+        </p>
+      </div>
+      <label for="confirm">Saisissez <code>SUPPRIMER</code> pour confirmer</label>
+      <input
+        id="confirm"
+        name="confirm"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+        required
+      />
+      <button class="btn btn--danger" type="submit">Supprimer définitivement</button>
+    </form>
+  </section>
+</article>

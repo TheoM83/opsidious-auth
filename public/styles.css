@@ -84,3 +84,216 @@ input {
   color: var(--text);
   font-family: inherit;
 }
+
+/* ── Page de transparence ────────────────────────────────────────────────────
+   Une règle typographique porte toute la page : ce que le service DIT est en
+   serif ou en sans, ce qu'il STOCKE est en monospace. Le contraste entre les
+   deux est le système, pas une décoration.
+
+   Aucune police externe, délibérément : une page dont le sujet est la
+   confidentialité ne peut pas faire une requête à un tiers pour s'afficher.  */
+
+:root {
+  /* Plus sombre que --surface : les valeurs stockées sont opaques, elles
+     s'enfoncent sous la surface au lieu de s'en détacher. */
+  --void: #101017;
+  --mono:
+    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
+.ledger {
+  width: 100%;
+  max-width: 640px;
+  text-align: left;
+}
+
+.ledger-head {
+  margin-bottom: 40px;
+}
+.ledger h1 {
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.lede {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--muted);
+}
+
+/* Les intertitres sont en monospace tracké : ce sont des étiquettes de
+   registre, pas des titres de magazine. */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+
+/* ── La ligne ─────────────────────────────────────────────────────────────── */
+
+.fields {
+  list-style: none;
+  margin: 0 0 44px;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.field {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.field-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.field-shape {
+  margin: 9px 0 12px;
+}
+.field-shape code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  padding: 3px 9px;
+  background: var(--void);
+  border-radius: 6px;
+}
+
+.field-kind {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Le verdict est la colonne qui compte. Par défaut il est calme : la plupart
+   des champs n'apprennent rien, et une page qui crie « protégé ! » six fois
+   convainc moins qu'une page qui le constate. */
+.verdict {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Le seul champ qui révèle quelque chose est le seul à porter la couleur.
+   C'est le pari de cette page : mettre en avant ce que le service SAIT plutôt
+   que ce qu'il ignore. Une page de transparence qui désigne sa propre faiblesse
+   est plus crédible qu'une page qui vante ses forces. */
+.field--reveals .verdict {
+  color: var(--text);
+}
+.verdict-mark {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--primary);
+  vertical-align: middle;
+}
+
+/* ── Ce qui n'existe pas ──────────────────────────────────────────────────── */
+
+.absent {
+  margin-bottom: 44px;
+}
+.absent ul {
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.absent li {
+  padding: 9px 0 9px 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--muted);
+  position: relative;
+}
+/* Une barre plutôt qu'une puce : ces champs sont absents, pas énumérés. */
+.absent li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  width: 11px;
+  height: 1px;
+  background: var(--line);
+}
+.cannot {
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--surface);
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cannot strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Agir ─────────────────────────────────────────────────────────────────── */
+
+.act {
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+}
+.act h3 {
+  margin: 0 0 6px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+}
+.act p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.act .warn {
+  color: var(--danger);
+}
+.act label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.act label code {
+  font-family: var(--mono);
+  color: var(--text);
+}
+.act input {
+  margin-bottom: 12px;
+  font-family: var(--mono);
+}
+.act .btn {
+  width: 100%;
+}
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+/* La page de transparence est un document : elle s'aligne en haut et à gauche,
+   là où le reste du service centre un panneau de 420px. */
+main:has(.ledger) {
+  place-items: start center;
+  padding: 40px 20px 64px;
+}
+
+:where(a, button, summary, input):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

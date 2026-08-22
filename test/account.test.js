@@ -59,10 +59,24 @@ test("the account page is not cacheable - it embeds this session's CSRF token", 
   assert.match(page.headers['cache-control'], /no-store/);
 });
 
-test('the page never displays the Google account or any identifier', async () => {
+test('the page names every stored field but renders none of their values', async () => {
   const { page, account } = await signedIn();
-  assert.ok(!page.text.includes(account.id));
-  assert.ok(!page.text.includes('google_sub'));
+  const t = page.text;
+
+  // Transparency: the reader must see WHICH fields exist. The column names are
+  // the point of the page, so they are expected to be there.
+  for (const field of ['id', 'google_sub_hash', 'kdf_salt', 'sealed_salt', 'created_at']) {
+    assert.ok(t.includes(field), `the page must name the field ${field}`);
+  }
+
+  // But never the opaque values. A hex string proves nothing to a reader who
+  // cannot recompute it, and a screenshot plus a future database leak would let
+  // someone confirm "that screenshot is this row".
+  const hex = (v) => (Buffer.isBuffer(v) ? v.toString('hex') : String(v));
+  assert.ok(!t.includes(account.id), 'the account id must not be rendered');
+  assert.ok(!t.includes(hex(account.google_sub_hash)), 'the sub hash must not be rendered');
+  assert.ok(!t.includes(hex(account.kdf_salt)), 'the kdf salt must not be rendered');
+  assert.ok(!t.includes(hex(account.sealed_salt)), 'the sealed salt must not be rendered');
 });
 
 test('logout ends the session and clears the __Host- cookie with Secure set', async () => {
