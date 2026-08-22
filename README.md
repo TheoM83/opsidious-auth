@@ -333,25 +333,30 @@ from one without.
 
 ## Le bouton de connexion
 
-Le service sert son propre bouton, pour qu'une application n'ait ni à recopier
-des règles CSS ni à héberger l'emblème — et pour qu'il change partout le jour
-où la marque change.
+Le service sert son propre bouton. Une application n'écrit qu'un lien et une
+classe — l'emblème est embarqué dans la feuille, il n'y a aucune image à
+héberger ni à charger.
 
 ```html
 <link rel="stylesheet" href="https://auth.opsidious.com/button.css" />
 
-<a class="opsid-signin" href="/auth/opsidious">
-  <img class="opsid-signin__mark" src="https://auth.opsidious.com/emblem.svg" alt="" />
-  Se connecter avec Opsidious
-</a>
+<a class="opsid-signin" href="/auth/opsidious">Continuer avec Opsidious</a>
 ```
 
 C'est un lien, pas un bouton javascript : la connexion est une redirection, et
-il n'y a aucun script tiers à charger. Le bouton suit `prefers-color-scheme`
-tout seul ; `class="opsid-signin opsid-signin--dark"` le force en sombre.
+il n'y a aucun script tiers. Le bouton suit `prefers-color-scheme` tout seul ;
+`opsid-signin--sombre` le force en sombre, `opsid-signin--court` retire la
+mention pour les emplacements serrés.
 
-Ces deux fichiers sont les seules ressources que le service expose à d'autres
-origines. Ils portent `Access-Control-Allow-Origin: *` **et**
+Il porte « Sans e-mail, sans nom » sous son libellé. C'est ce qui le distingue
+des autres boutons de connexion : eux disent avec QUI, celui-ci dit ce qu'il ne
+prend pas. La promesse est le produit, elle a sa place sur le contrôle.
+
+**Ne le recopiez pas.** Un bouton que chaque application redessine dérive, et un
+bouton qui dérive n'est plus un repère — c'est tout l'intérêt de le servir d'ici.
+
+Cette feuille est la seule ressource que le service expose à d'autres origines.
+Elle porte `Access-Control-Allow-Origin: *` **et**
 `Cross-Origin-Resource-Policy: cross-origin` — le second est facile à oublier :
 CORP prime sur CORS pour le chargement d'une ressource, et sans lui le
 navigateur bloque malgré l'en-tête CORS. Un test le vérifie, et vérifie aussi
