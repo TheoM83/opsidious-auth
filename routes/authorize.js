@@ -46,6 +46,34 @@ router.get('/authorize', async (req, res, next) => {
 
     if (!state) return redirectBack(res, redirectUri, { error: 'invalid_request' });
 
+    // `response_type` and `scope` are checked because the discovery document
+    // promises exactly one value for each. Without these checks the promise is
+    // decorative: a client attempting the implicit flow with
+    // `response_type=token` was handed an authorization code instead, with no
+    // error - it would have had no idea what to do with it, and no way to find
+    // out why. Advertising a capability contract and not enforcing it is the
+    // same defect whichever direction it fails in.
+    //
+    // Unrecognised OIDC parameters (max_age, display, ui_locales, login_hint,
+    // acr_values, claims...) are deliberately NOT rejected: OIDC Core §3.1.2.1
+    // says a server ignores request parameters it does not understand, and a
+    // real client library sends several of them as a matter of course.
+    const responseType = String(req.query.response_type ?? '');
+    if (!responseType) return redirectBack(res, redirectUri, { error: 'invalid_request', state });
+    if (responseType !== 'code') {
+      return redirectBack(res, redirectUri, { error: 'unsupported_response_type', state });
+    }
+
+    // `scope` is optional on the wire, but when a client does ask, `openid` has
+    // to be in it: this service issues an ID token and nothing else, so a
+    // request for `email` or `profile` would be answered with a token that
+    // carries neither. Failing loudly beats returning a token that silently
+    // lacks what was asked for.
+    const scope = String(req.query.scope ?? '');
+    if (scope && !scope.split(/\s+/).includes('openid')) {
+      return redirectBack(res, redirectUri, { error: 'invalid_scope', state });
+    }
+
     // A live session, unless the application explicitly asked to re-authenticate.
     const existing = prompt === 'login' ? null : await resolveSession(req.cookies?.[SSO_COOKIE_NAME]);
 

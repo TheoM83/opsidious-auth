@@ -74,6 +74,13 @@ export function opsidiousAuth({
       });
 
       const url = new URL(`${publicBase}/authorize`);
+      // `response_type` and `scope` are REQUIRED by RFC 6749 §4.1.1 and OIDC
+      // Core §3.1.2.1. This package omitted both and worked anyway, because
+      // the service did not check either - two halves of the same repository
+      // agreeing on a mistake. The service checks now, and anyone reading this
+      // file as a reference implementation gets a conformant request.
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('scope', 'openid');
       url.searchParams.set('client_id', clientId);
       url.searchParams.set('redirect_uri', redirectUri);
       url.searchParams.set('state', state);

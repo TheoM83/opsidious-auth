@@ -27,7 +27,15 @@ afterEach(() => {
 const authorize = (over = {}) =>
   request(app)
     .get('/authorize')
-    .query({ client_id: 'defnote', redirect_uri: CALLBACK, state: 's1', nonce: 'n1', ...over });
+    .query({
+      client_id: 'defnote',
+      redirect_uri: CALLBACK,
+      response_type: 'code',
+      scope: 'openid',
+      state: 's1',
+      nonce: 'n1',
+      ...over
+    });
 
 async function sessionCookie() {
   const { account, pairwiseSalt } = await signInWithGoogleSub(`sub-${Math.random()}`);
@@ -162,7 +170,14 @@ test('two applications get different subjects for one person', async () => {
   const one = await authorize().set('Cookie', cookie);
   const two = await request(app)
     .get('/authorize')
-    .query({ client_id: 'otherapp', redirect_uri: 'https://other.test/cb', state: 's', nonce: 'n' })
+    .query({
+      client_id: 'otherapp',
+      redirect_uri: 'https://other.test/cb',
+      response_type: 'code',
+      scope: 'openid',
+      state: 's',
+      nonce: 'n'
+    })
     .set('Cookie', cookie);
 
   const codes = await dbAll('SELECT app_sub, client_id FROM codes');
@@ -170,4 +185,57 @@ test('two applications get different subjects for one person', async () => {
   const b = codes.find((c) => c.client_id === 'otherapp');
   assert.ok(one.headers.location && two.headers.location);
   assert.notEqual(a.app_sub, b.app_sub);
+});
+
+// The discovery document promises exactly one response type and one scope.
+// Before these checks existed the promise was decorative: a client attempting
+// the implicit flow with `response_type=token` was handed an authorization
+// code, with no error and no way to find out why. Found by pointing the
+// reference client at the service rather than by re-reading our own tests.
+test('a client attempting the implicit flow is refused, not handed a code', async () => {
+  for (const responseType of ['token', 'id_token', 'code token']) {
+    const res = await authorize({ response_type: responseType });
+    const url = new URL(res.headers.location);
+    assert.equal(
+      url.searchParams.get('error'),
+      'unsupported_response_type',
+      `${responseType} must be refused`
+    );
+    assert.equal(url.searchParams.get('code'), null, 'no code may be issued');
+    assert.equal(url.searchParams.get('state'), 's1', 'the error must carry state back');
+  }
+});
+
+test('a missing response_type is a bad request, not a silent success', async () => {
+  const res = await authorize({ response_type: undefined });
+  const url = new URL(res.headers.location);
+  assert.equal(url.searchParams.get('error'), 'invalid_request');
+  assert.equal(url.searchParams.get('code'), null);
+});
+
+test('a scope that omits openid is refused rather than half-answered', async () => {
+  // This service issues an ID token and nothing else, so `email` or `profile`
+  // would be answered with a token carrying neither. Failing loudly beats
+  // returning a token that silently lacks what was asked for.
+  for (const scope of ['email', 'profile email']) {
+    const res = await authorize({ scope });
+    assert.equal(new URL(res.headers.location).searchParams.get('error'), 'invalid_scope');
+  }
+});
+
+test('unrecognised OIDC parameters are ignored, not rejected', async () => {
+  // OIDC Core 3.1.2.1: a server ignores request parameters it does not
+  // understand. A real client library sends several as a matter of course, so
+  // rejecting them would break exactly the integrations this service wants.
+  const res = await authorize({
+    max_age: '3600',
+    display: 'page',
+    ui_locales: 'fr',
+    login_hint: 'someone@example.test',
+    acr_values: '1'
+  }).set('Cookie', await sessionCookie());
+  assert.equal(res.status, 302);
+  const url = new URL(res.headers.location);
+  assert.ok(url.searchParams.get('code'), 'the flow must still complete');
+  assert.equal(url.searchParams.get('error'), null);
 });

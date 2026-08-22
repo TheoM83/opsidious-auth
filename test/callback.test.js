@@ -34,7 +34,15 @@ beforeEach(async () => {
 async function startFlow(over = {}) {
   const res = await request(app)
     .get('/authorize')
-    .query({ client_id: 'defnote', redirect_uri: CALLBACK, state: 's1', nonce: 'n1', ...over });
+    .query({
+      client_id: 'defnote',
+      redirect_uri: CALLBACK,
+      response_type: 'code',
+      scope: 'openid',
+      state: 's1',
+      nonce: 'n1',
+      ...over
+    });
   return new URL(res.headers.location).searchParams.get('state'); // the parked request id
 }
 
@@ -155,7 +163,15 @@ test('re-authenticating (prompt=login) revokes the session named by the cookie t
 
   const started = await request(app)
     .get('/authorize')
-    .query({ client_id: 'defnote', redirect_uri: CALLBACK, state: 's1', nonce: 'n1', prompt: 'login' })
+    .query({
+      client_id: 'defnote',
+      redirect_uri: CALLBACK,
+      response_type: 'code',
+      scope: 'openid',
+      state: 's1',
+      nonce: 'n1',
+      prompt: 'login'
+    })
     .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}`);
   const requestId = new URL(started.headers.location).searchParams.get('state');
 
@@ -189,7 +205,14 @@ test('the second sign-in is silent and never contacts Google again', async () =>
   });
   const silent = await request(app)
     .get('/authorize')
-    .query({ client_id: 'defnote', redirect_uri: CALLBACK, state: 's2', nonce: 'n2' })
+    .query({
+      client_id: 'defnote',
+      redirect_uri: CALLBACK,
+      response_type: 'code',
+      scope: 'openid',
+      state: 's2',
+      nonce: 'n2'
+    })
     .set('Cookie', cookie);
 
   assert.equal(silent.status, 302);
