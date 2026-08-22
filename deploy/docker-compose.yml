@@ -1,0 +1,88 @@
+# Opsidious Auth — fragment de déploiement autonome.
+#
+# Ce dépôt se déploie lui-même sur mercury : le dépôt du serveur ne contient ni
+# ce fichier, ni les secrets. Voir mercury/docs/architecture-deploiement.md.
+#
+#   docker compose -p opsidious-auth up -d
+#
+# Le nom de projet `opsidious-auth` est stable et fait partie du contrat : il
+# préfixe les volumes.
+
+networks:
+  # Créé par le socle (mercury/infrastructure). Jamais créé ici : si ce réseau
+  # n'existe pas, c'est que le socle n'est pas monté, et démarrer sans lui
+  # donnerait un conteneur inaccessible plutôt qu'une erreur claire.
+  proxy:
+    external: true
+
+volumes:
+  # Service neuf, aucune donnée à reprendre : compose le préfixe en
+  # `opsidious-auth_data`. (Une application qui migre depuis le stack unique
+  # doit au contraire épingler son volume existant — voir defnote.)
+  data:
+
+services:
+  opsidious-auth:
+    image: ghcr.io/theom83/opsidious-auth:latest
+    restart: unless-stopped
+    networks:
+      - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Config non secrète : elle a sa place dans le dépôt, en clair.
+    environment:
+      - NODE_ENV=production
+      - PORT=4570
+      - PUBLIC_URL=https://auth.opsidious.com
+      - DB_PATH=/app/data/opsidious-auth.db
+      - BACKUP_DIR=/backups
+
+    # GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET, écrits par le workflow de CE
+    # dépôt depuis SES propres secrets GitHub. `required: false` pour que le
+    # premier démarrage échoue sur le message de l'application plutôt que sur le
+    # parsing du compose.
+    #
+    # Attention : compose applique env_file PUIS environment. Une clé définie
+    # dans les deux est gagnée par environment, silencieusement — ne dupliquez
+    # jamais une clé entre les deux blocs.
+    env_file:
+      - path: ./secrets.env
+        required: false
+
+    volumes:
+      - data:/app/data
+      # Bind mount hôte, PAS un volume Docker : `docker compose down -v`
+      # supprime les volumes et emporterait les sauvegardes avec la base
+      # qu'elles servent à restaurer. Le répertoire doit exister et appartenir
+      # à l'uid 1000 — l'image tourne en `node`, pas en root.
+      - /home/mercury/opsidious-auth/backups:/backups
+
+    healthcheck:
+      # /healthz ne touche ni la base ni le réseau : c'est une sonde de
+      # vivacité, délibérément. Une sonde qui interrogerait la base
+      # transformerait une panne de base en boucle de redémarrage.
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:4570/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      # Le démarrage fait du vrai travail avant d'ouvrir le port : ouvrir la
+      # base, lire-ou-frapper le pepper et la première clé de signature, puis
+      # une passe de balayage et de sauvegarde.
+      start_period: 20s
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.opsidious-auth.rule=Host(`auth.opsidious.com`)"
+      - "traefik.http.routers.opsidious-auth.entrypoints=websecure"
+      - "traefik.http.routers.opsidious-auth.tls.certresolver=letsencrypt"
+      - "traefik.http.services.opsidious-auth.loadbalancer.server.port=4570"
+      - "homepage.group=Web"
+      - "homepage.name=Opsidious Auth"
+      - "homepage.description=Identite anonyme, Google uniquement"
+      - "homepage.href=https://auth.opsidious.com"
+
+    container_name: opsidious-auth

@@ -69,6 +69,10 @@ jobs:
       # Redeploy on the server. continue-on-error so a missing secret still
       # leaves the image published. Only for the CI-gated path, not a manual
       # workflow_dispatch - matches this step's previous `push`-only scope.
+      # This repository deploys itself. The server's repository holds neither
+      # this stack's compose fragment nor its secrets - see
+      # mercury/docs/architecture-deploiement.md. The compose project name
+      # `opsidious-auth` is part of that contract: it namespaces the volumes.
       - name: Deploy on mercury (SSH)
         if: ${{ github.event_name == 'workflow_run' }}
         continue-on-error: true
@@ -77,8 +81,31 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Passed through the action's env rather than interpolated into the
+          # script, so the values never appear in the rendered command line.
+          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
-            cd ${{ vars.MERCURY_INFRA_PATH }} || exit 1
-            docker compose pull opsidious-auth
-            docker compose up -d opsidious-auth
+            set -euo pipefail
+            APP_DIR="$HOME/apps/opsidious-auth"
+            mkdir -p "$APP_DIR" "$HOME/opsidious-auth/backups"
+            cd "$APP_DIR"
+
+            # The fragment is fetched from this repository, so the file the
+            # server runs is always the one this commit describes.
+            curl -fsSL -o docker-compose.yml \
+              "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/deploy/docker-compose.yml"
+
+            # umask BEFORE the write, not a chmod after: between creation and a
+            # later chmod the file is world-readable.
+            umask 077
+            cat > secrets.env <<EOF
+            GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+            GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            EOF
+
+            docker compose -p opsidious-auth pull
+            docker compose -p opsidious-auth up -d
             echo "opsidious-auth redeployed"
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
