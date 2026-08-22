@@ -338,21 +338,22 @@ by hand into wherever the application keeps its configuration. Every step of
 that is a place the value can be left behind: scrollback, a shell history, a
 paste buffer, a screenshot.
 
-The **Register a client** workflow does the same registration and never renders
-the value. It runs the script in `--secret-only` mode, masks what it captures
-before anything else can print it, and hands it to `gh secret set`, which
-encrypts it with the target repository's public key before sending. The secret
-goes from the server straight into the consuming repository's GitHub secrets
-without being displayed to anyone.
+The **Enregistrer une application** workflow does the same registration and
+never renders the value. Two inputs — the client id and its exact redirect URI —
+and it writes the secret directly into `~/apps/<client_id>/opsidious.env` on the
+server, which the application's own compose fragment already reads alongside its
+own `secrets.env`. Two files, two owners, no conflict.
 
-Run it from the Actions tab with four inputs — the client id, its name, its
-exact redirect URI, and the repository that should receive the secret. It needs
-`REGISTRAR_TOKEN`, a token carrying `secrets: write` on that repository;
-`GITHUB_TOKEN` deliberately cannot write to another repository, so this stays a
-separately-granted capability rather than something the workflow has by default.
+The secret is produced on the server and consumed on the server, so it never
+travels: sending it up to GitHub's secrets only to have it come back down would
+walk it past a runner, an API and an encrypted store for no gain, and would need
+a personal access token with `secrets: write` on another repository to be
+created and rotated. It uses the same `SSH_PRIVATE_KEY`, `SERVER_HOST` and
+`SERVER_USERNAME` the deploy already needs, and nothing else.
 
-Re-running it against an existing client id rotates the secret and overwrites
-the stored one.
+If the application is already deployed, the workflow restarts it so the secret
+takes effect immediately rather than at the next deploy. Re-running it against
+an existing client id rotates the secret.
 
 ## Self-hosting
 
