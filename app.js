@@ -62,6 +62,45 @@ app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
 // unrate-limited - an amplification lever of their own (spec §7.17), the
 // same reasoning that already put this limiter ahead of every route below.
 app.use(globalLimiter);
+// Le bouton de marque et son emblème sont servis par le service lui-même :
+// une application les référence par URL plutôt que de recopier des règles CSS
+// et un SVG qu'elle devrait ensuite maintenir. Le jour où la marque change,
+// elle change partout d'un coup.
+//
+// Cache long : ce sont des ressources de marque, pas du contenu. Elles sont
+// aussi les deux SEULES choses que ce service expose à des origines tierces,
+// d'où le CORS explicite et restreint à la lecture.
+app.use(
+  '/button.css',
+  (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // helmet pose Cross-Origin-Resource-Policy: same-origin sur tout le
+    // service, et CORP prime sur CORS pour le CHARGEMENT d'une ressource : sans
+    // cette ligne le navigateur bloquerait la feuille et l'emblème malgré
+    // l'en-tête ci-dessus. Ces deux fichiers sont les seuls à être relâchés,
+    // et ce sont deux ressources de marque publiques.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    next();
+  },
+  express.static(join(here, 'client', 'button.css'))
+);
+app.use(
+  '/emblem.svg',
+  (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // helmet pose Cross-Origin-Resource-Policy: same-origin sur tout le
+    // service, et CORP prime sur CORS pour le CHARGEMENT d'une ressource : sans
+    // cette ligne le navigateur bloquerait la feuille et l'emblème malgré
+    // l'en-tête ci-dessus. Ces deux fichiers sont les seuls à être relâchés,
+    // et ce sont deux ressources de marque publiques.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    next();
+  },
+  express.static(join(here, 'public', 'emblem.svg'))
+);
+
 app.use(express.static(join(here, 'public'), { maxAge: '7d' }));
 
 // Route modules are mounted here as later tasks add them:

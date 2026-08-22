@@ -1,11 +1,30 @@
+/* Palette tirée du logo, pas inventée à côté de lui.
+   #EF4444 vermillon, #F5F5F7 texte, #18181B surface, #0D0D10 fond : ce sont les
+   valeurs exactes des SVG de la marque.
+
+   Le vermillon n'est JAMAIS un aplat. Mesuré : du blanc dessus donne 3,76 de
+   contraste, sous le seuil AA de 4,5 — un bouton plein serait soit illisible,
+   soit à texte noir, ce qui est laid. Il sert donc à l'emblème et aux repères,
+   là où sa saturation porte l'identité sans avoir à être lue. Les contrôles
+   sont des surfaces neutres à filet, comme les boutons de connexion qui font
+   premium : c'est aussi ce qui évite le « noir + un accent criard » qu'on voit
+   partout. */
 :root {
-  --bg: #17171e;
-  --surface: #20202a;
-  --line: #33333f;
-  --primary: #8b8bf0;
-  --danger: #f08b8b;
-  --text: #f5f2ea;
-  --muted: #9a9aa8;
+  --bg: #0d0d10;
+  --surface: #18181b;
+  --line: #26262b;
+  --text: #f5f5f7;
+  --muted: #a1a1aa; /* 7,57 sur le fond */
+  --brand: #ef4444;
+  --danger: #ef4444;
+
+  /* La géométrie du logo — hexagone facetté, barre, repères triangulaires —
+     tient d'un instrument de mesure. D'où les filets d'un pixel et les
+     graduations plutôt que des ombres et des dégradés. */
+  --radius: 12px;
+  --tap: 44px;
+  --mono:
+    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
 }
 * {
   box-sizing: border-box;
@@ -57,7 +76,7 @@ h2 {
   padding: 11px 20px;
   border: 0;
   border-radius: 16px;
-  background: var(--primary);
+  background: var(--brand);
   color: #17171e;
   font: inherit;
   font-weight: 600;
@@ -92,14 +111,6 @@ input {
 
    Aucune police externe, délibérément : une page dont le sujet est la
    confidentialité ne peut pas faire une requête à un tiers pour s'afficher.  */
-
-:root {
-  /* Plus sombre que --surface : les valeurs stockées sont opaques, elles
-     s'enfoncent sous la surface au lieu de s'en détacher. */
-  --void: #101017;
-  --mono:
-    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
-}
 
 .ledger {
   width: 100%;
@@ -158,7 +169,7 @@ input {
   font-size: 13px;
   color: var(--text);
   padding: 3px 9px;
-  background: var(--void);
+  background: var(--bg);
   border-radius: 6px;
 }
 
@@ -190,7 +201,7 @@ input {
   height: 6px;
   margin-right: 9px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--brand);
   vertical-align: middle;
 }
 
@@ -286,7 +297,7 @@ main:has(.ledger) {
 }
 
 :where(a, button, summary, input):focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--brand);
   outline-offset: 3px;
   border-radius: 6px;
 }
@@ -372,4 +383,62 @@ main:has(.ledger) {
 .links code {
   font-family: var(--mono);
   font-size: 13px;
+}
+
+/* ── Barre de marque ────────────────────────────────────────────────────────
+   Un filet, pas une ombre : le logo est un objet de mesure, la page emprunte
+   son vocabulaire.                                                          */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  padding: 16px calc(20px + var(--safe-left, 0px)) 16px calc(20px + var(--safe-right, 0px));
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  /* Le mot-symbole du logo est en capitales très ouvertes (6/56). La barre
+     reprend ce rapport à petite taille pour que les deux se reconnaissent. */
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.brand img {
+  display: block;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px calc(20px + var(--safe-left, 0px)) calc(20px + var(--safe-bottom, 0px));
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+  letter-spacing: 0.06em;
+}
+footer a {
+  color: var(--muted);
+}
+
+/* Le trait de l'emblème traverse son hexagone ; les séparations de la page en
+   reprennent l'idée — une graduation vermillon à gauche du filet. */
+.eyebrow {
+  position: relative;
+  padding-left: 16px;
+}
+.eyebrow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--brand);
 }

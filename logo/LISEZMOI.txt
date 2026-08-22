@@ -1,0 +1,18 @@
+OPSIDIOUS — Pack logo
+=====================
+
+svg/
+  opsidious-logo-complet.svg              Logo + OPSIDIOUS, fond transparent (texte clair : pour fonds sombres)
+  opsidious-logo-complet-fond-sombre.svg  Logo + OPSIDIOUS sur fond sombre (#0d0d10)
+  opsidious-icone.svg                     Emblème hexagonal seul, fond transparent
+  opsidious-icone-fond-sombre.svg         Emblème seul sur fond sombre
+
+png/icone/          16, 32, 48, 64, 128, 256, 512, 1024 px (transparent)
+                    + versions fond sombre en 256, 512, 1024 px (avatars, favicons)
+
+png/logo-complet/   512, 1024, 2048 px de large, transparent et fond sombre
+
+Notes :
+- Le texte du logo complet est quasi blanc : les versions "transparent"
+  sont à utiliser uniquement sur fond sombre.
+- Les SVG restent la source vectorielle : redimensionnables sans perte.

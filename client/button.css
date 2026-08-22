@@ -1,0 +1,85 @@
+/* Bouton « Se connecter avec Opsidious ».
+ *
+ * Servi par le service lui-même à /button.css, pour qu'une application n'ait
+ * ni à recopier ces règles ni à héberger l'emblème — et pour que le bouton
+ * change partout le jour où la marque change.
+ *
+ * Surface neutre à filet, pas un aplat vermillon : mesuré, du blanc sur
+ * #EF4444 donne 3,76 de contraste, sous le seuil AA de 4,5. Le vermillon vit
+ * dans l'emblème, où sa saturation porte l'identité sans avoir à être lue.
+ * C'est aussi ce qui distingue ce bouton d'un aplat criard.
+ *
+ * Tout est préfixé `opsid-` : ce fichier atterrit dans des pages qui ont leur
+ * propre feuille de style, et rien ici ne doit déborder sur elles.
+ */
+
+.opsid-signin {
+  --opsid-bg: #18181b;
+  --opsid-bg-hover: #1f1f23;
+  --opsid-line: #34343a;
+  --opsid-text: #f5f5f7;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+
+  background: var(--opsid-bg);
+  color: var(--opsid-text);
+  border: 1px solid var(--opsid-line);
+  border-radius: 12px;
+
+  font: 600 15px/1.2 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.14s ease;
+}
+
+.opsid-signin:hover {
+  background: var(--opsid-bg-hover);
+  border-color: #43434a;
+}
+.opsid-signin:active {
+  transform: scale(0.985);
+}
+
+/* Anneau vermillon : c'est la seule fois où la marque touche le contrôle
+   lui-même, et seulement quand le clavier le désigne. */
+.opsid-signin:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 3px;
+}
+
+.opsid-signin__mark {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+/* Une application claire hérite du même bouton sans le redéclarer. */
+@media (prefers-color-scheme: light) {
+  .opsid-signin:not(.opsid-signin--dark) {
+    --opsid-bg: #ffffff;
+    --opsid-bg-hover: #f7f7f8;
+    --opsid-line: #d8d8dd;
+    --opsid-text: #18181b;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opsid-signin {
+    transition: none;
+  }
+  .opsid-signin:active {
+    transform: none;
+  }
+}

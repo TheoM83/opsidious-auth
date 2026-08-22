@@ -3,15 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <%# Le suffixe est omis quand le titre est deja "Opsidious", sinon l'onglet
-        affiche "Opsidious — Opsidious" sur la page d'accueil. %>
     <title><%= title === 'Opsidious' ? title : title + ' — Opsidious' %></title>
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#17171e" />
+    <meta name="theme-color" content="#0d0d10" />
+    <link rel="icon" href="/emblem.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <%# L'emblème mène à l'accueil et rien d'autre : c'est un service
+        d'identité, pas un produit à explorer. Une seule destination, donc un
+        seul lien. %>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Opsidious, accueil">
+        <img src="/emblem.svg" alt="" width="26" height="26" />
+        <span>Opsidious</span>
+      </a>
+    </header>
+
     <main><%- body %></main>
-    <footer>Opsidious</footer>
+
+    <footer>
+      <span>Opsidious</span>
+      <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer">Code source</a>
+    </footer>
   </body>
 </html>

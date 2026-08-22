@@ -331,6 +331,32 @@ docker exec -it opsidious-auth node scripts/register-client.mjs \
 Redirect URIs are matched **exactly** — a trailing slash is a different URI
 from one without.
 
+## Le bouton de connexion
+
+Le service sert son propre bouton, pour qu'une application n'ait ni à recopier
+des règles CSS ni à héberger l'emblème — et pour qu'il change partout le jour
+où la marque change.
+
+```html
+<link rel="stylesheet" href="https://auth.opsidious.com/button.css" />
+
+<a class="opsid-signin" href="/auth/opsidious">
+  <img class="opsid-signin__mark" src="https://auth.opsidious.com/emblem.svg" alt="" />
+  Se connecter avec Opsidious
+</a>
+```
+
+C'est un lien, pas un bouton javascript : la connexion est une redirection, et
+il n'y a aucun script tiers à charger. Le bouton suit `prefers-color-scheme`
+tout seul ; `class="opsid-signin opsid-signin--dark"` le force en sombre.
+
+Ces deux fichiers sont les seules ressources que le service expose à d'autres
+origines. Ils portent `Access-Control-Allow-Origin: *` **et**
+`Cross-Origin-Resource-Policy: cross-origin` — le second est facile à oublier :
+CORP prime sur CORS pour le chargement d'une ressource, et sans lui le
+navigateur bloque malgré l'en-tête CORS. Un test le vérifie, et vérifie aussi
+que rien d'autre n'est relâché.
+
 ### Registering without ever seeing the secret
 
 The command above prints the secret to a terminal, and from there it is copied
