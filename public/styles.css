@@ -446,100 +446,140 @@ footer a {
 
 /* ── Écran d'introduction ───────────────────────────────────────────────────
    Affiché une seule fois par navigateur, au moment où quelqu'un décide de
-   faire confiance. Une carte centrée et courte : c'est un point de passage,
-   pas une page à lire.                                                      */
+   faire confiance. Court et centré : c'est un point de passage, pas une page
+   à lire.                                                                   */
 
 .intro {
   width: 100%;
-  max-width: 420px;
+  max-width: 436px;
   margin: auto;
   text-align: left;
 }
 .intro-card {
-  padding: 32px 28px 26px;
+  padding: 30px 30px 24px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 20px;
-}
-.intro-mark {
-  display: block;
-  margin-bottom: 20px;
-}
-.intro h1 {
-  margin: 0 0 8px;
-  font-size: 24px;
-  letter-spacing: -0.01em;
-}
-.intro .lede {
-  margin: 0 0 24px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
+  border-radius: 22px;
 }
 
-/* Trois lignes, une par partie. Pas de numéros : ce n'est pas une procédure à
-   suivre, c'est un état de fait à constater — le chiffre n'apporterait rien
-   qu'un ornement. */
-.chain {
-  list-style: none;
-  margin: 0 0 26px;
-  padding: 0;
-  border-top: 1px solid var(--line);
+.intro-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
 }
-.chain li {
+.intro-mark {
+  flex: 0 0 auto;
+  display: block;
+}
+.intro h1 {
+  margin: 0 0 3px;
+  font-size: 21px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.intro-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ── Le trajet ──────────────────────────────────────────────────────────────
+   Le logo est un hexagone TRAVERSÉ par une barre. Cette liste est le même
+   geste : un fil vermillon relie les trois parties, chacune est un point
+   dessus. Le motif vient de la marque plutôt que d'un catalogue.            */
+
+.flow {
+  position: relative;
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+/* Le fil. Il s'arrête au dernier point au lieu de filer dans le vide : le
+   trajet se termine à l'application, il ne continue pas. */
+.flow::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 26px;
+  width: 1px;
+  background: linear-gradient(var(--brand), color-mix(in srgb, var(--brand) 25%, transparent));
+}
+.flow li {
+  position: relative;
   display: grid;
   gap: 2px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 0 0 20px 24px;
 }
-.chain-who {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 3px;
+.flow li:last-child {
+  padding-bottom: 0;
 }
-.chain-yes {
-  font-size: 14px;
-  line-height: 1.45;
-}
-/* Ce que la partie NE voit pas est la moitié qui compte : c'est elle qui
-   distingue ce service d'une connexion Google ordinaire. Le trait vermillon
-   la désigne sans avoir à la crier. */
-.chain-no {
-  position: relative;
-  padding-left: 15px;
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.45;
-}
-.chain-no::before {
+/* Le point sur le fil. Creux, cerclé de vermillon : un repère de mesure, pas
+   une puce. */
+.flow li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 9px;
-  width: 8px;
-  height: 1px;
-  background: var(--brand);
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--brand);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.flow-who {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.flow-sees {
+  font-size: 14px;
+  line-height: 1.4;
+}
+/* Ce que la partie NE voit pas. En retrait et en gris : c'est une absence, et
+   une absence ne doit pas peser plus lourd que ce qui existe — mais elle est
+   la moitié qui distingue ce service d'une connexion ordinaire, d'où le
+   caractère qui l'annonce. */
+.flow-blind {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.flow-blind::before {
+  content: '✕';
+  margin-right: 6px;
+  color: var(--brand);
+  font-size: 9px;
+  vertical-align: 1px;
 }
 
 .intro-note {
-  margin: 14px 0 0;
+  margin: 13px 0 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: center;
 }
 .intro-foot {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   display: flex;
-  gap: 10px;
+  gap: 9px;
   justify-content: center;
   color: var(--line);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .intro-foot a {
   color: var(--muted);
+  text-decoration: none;
+}
+.intro-foot a:hover {
+  color: var(--text);
+  text-decoration: underline;
 }
 
 /* ── Bouton « Continuer avec Google » ───────────────────────────────────────
