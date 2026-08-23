@@ -42,7 +42,7 @@
   padding: 13px 22px 13px 18px;
   box-sizing: border-box;
 
-  background: var(--opsid-bg);
+  background-color: var(--opsid-bg);
   color: var(--opsid-text);
   border: 1px solid var(--opsid-line);
   border-radius: 14px;
@@ -73,27 +73,47 @@
   background: var(--opsid-mark) center / contain no-repeat;
 }
 
-/* La mention dit DEUX choses, et il en faut deux : « via Google » rassure sur
-   le chemin — c'est celui que les gens connaissent — et « anonyme » dit ce que
-   les autres boutons de connexion ne disent jamais. Les leurs annoncent avec
-   QUI ; celui-ci annonce en plus ce qu'il ne prend pas.
+/* Deux mots, pas une phrase. La mention disait tout — « anonyme, via Google,
+   sans e-mail ni nom » — parce qu'elle était le SEUL endroit où l'expliquer.
+   Depuis, l'écran d'introduction montre le mécanisme partie par partie, à la
+   première connexion. Le bouton n'a donc plus à porter la démonstration : il
+   annonce, l'écran explique.
    
-   Pas « Google Anonymizer » : accoler Google à un nom de produit laisse
-   entendre qu'il en est un, ce que ses règles de marque interdisent
-   explicitement pour les boutons de connexion. Et « anonymizer » sur-promet —
-   on n'anonymise pas Google, on empêche les applications de se recouper. */
+   Ce qui reste est ce qui ne peut pas être déduit du libellé : que c'est
+   anonyme, et que ça passe par Google. */
 .opsid-signin::after {
-  content: 'Anonyme — via Google, sans e-mail ni nom';
+  content: 'Anonyme · via Google';
   grid-column: 2;
   color: var(--opsid-note);
   font-size: 11.5px;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
+/* Le logo est un hexagone traversé d'une barre. Le bouton emprunte ce trait :
+   un filet vermillon paraît au bord bas, du centre vers les côtés, au survol.
+   Un seul geste, tiré de la marque plutôt qu'inventé — et le seul mouvement du
+   contrôle, ce qui le rend perceptible sans être décoratif. */
+
 .opsid-signin:hover {
-  background: var(--opsid-bg-hover);
+  background-color: var(--opsid-bg-hover);
   border-color: var(--opsid-line-hover);
+}
+/* Le filet, tracé sur le bord bas du bouton. */
+.opsid-signin {
+  background-image: linear-gradient(#ef4444, #ef4444);
+  background-repeat: no-repeat;
+  background-position: 50% 100%;
+  background-size: 0% 2px;
+  transition:
+    background-color 0.15s ease,
+    background-size 0.28s cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.opsid-signin:hover,
+.opsid-signin:focus-visible {
+  background-size: 100% 2px;
 }
 .opsid-signin:active {
   transform: scale(0.99);
