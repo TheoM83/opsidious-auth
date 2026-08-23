@@ -73,11 +73,17 @@
   background: var(--opsid-mark) center / contain no-repeat;
 }
 
-/* Ce que le bouton promet, en trois mots. C'est la différence avec les autres
-   boutons de connexion : eux disent avec QUI, celui-ci dit ce qu'il ne prend
-   pas. La promesse est le produit, elle a sa place sur le contrôle. */
+/* La mention dit DEUX choses, et il en faut deux : « via Google » rassure sur
+   le chemin — c'est celui que les gens connaissent — et « anonyme » dit ce que
+   les autres boutons de connexion ne disent jamais. Les leurs annoncent avec
+   QUI ; celui-ci annonce en plus ce qu'il ne prend pas.
+   
+   Pas « Google Anonymizer » : accoler Google à un nom de produit laisse
+   entendre qu'il en est un, ce que ses règles de marque interdisent
+   explicitement pour les boutons de connexion. Et « anonymizer » sur-promet —
+   on n'anonymise pas Google, on empêche les applications de se recouper. */
 .opsid-signin::after {
-  content: 'Sans e-mail, sans nom';
+  content: 'Anonyme — via Google, sans e-mail ni nom';
   grid-column: 2;
   color: var(--opsid-note);
   font-size: 11.5px;

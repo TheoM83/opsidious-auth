@@ -350,9 +350,17 @@ mention pour les emplacements serrés, `opsid-signin--bloc` le passe en pleine
 largeur pour un formulaire qui aligne ses contrôles. Par défaut il s'ajuste à
 son texte : un bouton de connexion pleine largeur a l'air d'un bandeau.
 
-Il porte « Sans e-mail, sans nom » sous son libellé. C'est ce qui le distingue
-des autres boutons de connexion : eux disent avec QUI, celui-ci dit ce qu'il ne
-prend pas. La promesse est le produit, elle a sa place sur le contrôle.
+Il porte « Anonyme — via Google, sans e-mail ni nom » sous son libellé. La
+mention dit deux choses et il en faut deux : « via Google » rassure sur le
+chemin, celui que les gens connaissent, et « anonyme » dit ce que les autres
+boutons de connexion ne disent jamais. Les leurs annoncent avec QUI ; celui-ci
+annonce en plus ce qu'il ne prend pas.
+
+Elle ne dit pas « Google Anonymizer » : accoler Google à un nom de produit
+laisse entendre qu'il en est un, ce que ses règles de marque interdisent
+explicitement pour les boutons de connexion — et « anonymizer » sur-promettrait,
+puisqu'on n'anonymise pas Google mais qu'on empêche les applications de se
+recouper.
 
 **Ne le recopiez pas.** Un bouton que chaque application redessine dérive, et un
 bouton qui dérive n'est plus un repère — c'est tout l'intérêt de le servir d'ici.
