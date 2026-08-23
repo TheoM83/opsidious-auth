@@ -582,6 +582,32 @@ response this route can produce — a redirect carrying a fresh code, or an
 error page — is sent with `Cache-Control: no-store`, so no cache or
 intermediary can replay one later.
 
+
+**L'écran d'introduction — décision inversée après coup.** Le §6 disait « aucune
+page intermédiaire, direct chez Google ». Cette décision supposait que les gens
+sachent ce qu'est Opsidious. Ils ne le savent pas : le mot « anonyme » ne vaut
+rien, tous les services l'emploient, et ce qui convainc est de montrer le
+mécanisme — qui voit quoi, et surtout qui ne voit pas quoi.
+
+Un écran s'affiche donc avant la PREMIÈRE redirection vers Google, une seule
+fois par navigateur, marqué par un cookie `__Host-opsid_seen`. Ce cookie ne
+porte aucune identité, et son absence ne coûte qu'un écran de plus — jamais un
+échec de connexion.
+
+Deux propriétés sont testées parce qu'elles protègent la connexion instantanée :
+une session ouverte ne voit JAMAIS cet écran, même sans le cookie, sinon il
+coûterait un aller-retour à chaque application au lieu d'une fois dans une vie ;
+et `prompt=none` ne l'affiche jamais, puisque « silencieusement ou pas du tout »
+interdit exactement d'afficher une page.
+
+**L'alternative écartée** était un script servi aux applications, façon Google
+One Tap, ouvrant une fenêtre modale dans leur page. Refusée pour une raison qui
+tient au produit autant qu'à la sécurité : un service dont l'argument est
+« personne ne vous piste » ne peut pas faire tourner son code sur toutes les
+pages de toutes les applications. C'est la forme exacte de ce qu'il dénonce, ça
+se voit dans un onglet réseau, et chaque application devrait rouvrir
+`script-src` — un script tiers pouvant infiniment plus qu'une feuille de style.
+
 ### Redirecting to Google
 
 Not a route of its own — step 3 of `/authorize` does it inline. The Google URL
