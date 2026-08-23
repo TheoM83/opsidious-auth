@@ -40,10 +40,21 @@ before(async () => {
   );
   // Not a real credential - a fixture pepper for a throwaway temp-dir test
   // database that is deleted in after().
-  await setSettingOnce('lookup_pepper', 'test-fixture-pepper-not-a-real-secret');
+  await setSettingOnce('lookup_pepper', Buffer.from('pepper-de-test-pas-un-vrai'));
   await dbRun(
-    'INSERT INTO signing_keys (kid, private_pem, public_jwk, created_at, retires_at, expires_at) VALUES (?,?,?,?,?,?)',
-    ['test-kid', 'test-fixture-private-pem-not-a-real-key', '{"kty":"RSA","kid":"test-kid"}', 0, 1, 2]
+    // La clé privée est scellée sous la clé maîtresse : la colonne porte un
+    // blob et son sel de dérivation, plus un PEM en clair.
+    `INSERT INTO signing_keys (kid, private_pem, pem_kdf_salt, public_jwk, created_at, retires_at, expires_at)
+     VALUES (?,?,?,?,?,?,?)`,
+    [
+      'test-kid',
+      Buffer.from('scelle-de-test-pas-une-vraie-cle'),
+      Buffer.from('sel-de-test'),
+      '{"kty":"RSA","kid":"test-kid"}',
+      0,
+      1,
+      2
+    ]
   );
 });
 after(async () => {
@@ -72,7 +83,15 @@ test('a backup carries the pepper and the signing keys, not just accounts', asyn
 
   const settings = await readBackedUpTable(file, "SELECT value FROM settings WHERE key = 'lookup_pepper'");
   assert.equal(settings.length, 1, 'the pepper setting must survive the backup');
-  assert.equal(settings[0].value, 'test-fixture-pepper-not-a-real-secret');
+  // La valeur est scellée : ce qui compte pour une sauvegarde, c'est qu'elle
+  // soit là et intacte, pas qu'elle soit lisible. Une sauvegarde sans le pepper
+  // orphelinerait tous les comptes qu'elle contient — c'est le pire échec
+  // silencieux possible pour ce service.
+  assert.equal(
+    Buffer.from(settings[0].value).toString(),
+    'pepper-de-test-pas-un-vrai',
+    'le pepper doit survivre à la copie, octet pour octet'
+  );
 
   const keys = await readBackedUpTable(file, 'SELECT kid FROM signing_keys');
   assert.equal(keys.length, 1, 'the signing key must survive the backup');

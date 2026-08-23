@@ -90,7 +90,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # Passed through the action's env rather than interpolated into the
           # script, so the values never appear in the rendered command line.
-          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,MASTER_KEY
           script: |
             set -euo pipefail
             APP_DIR="$HOME/apps/opsidious-auth"
@@ -104,10 +104,24 @@ jobs:
 
             # umask BEFORE the write, not a chmod after: between creation and a
             # later chmod the file is world-readable.
+            # Sans MASTER_KEY, le service refuse de démarrer en production —
+            # et il a raison : sans elle, la clé de signature et le pepper
+            # seraient écrits en clair, et une sauvegarde suffirait à forger un
+            # jeton pour n'importe qui. Refuser ici nomme le secret manquant au
+            # lieu de laisser un conteneur mourir en boucle.
+            if [ -z "${MASTER_KEY:-}" ]; then
+              echo "Le secret MASTER_KEY est vide ou absent du dépôt." >&2
+              echo "Créez-le dans Settings > Secrets and variables > Actions." >&2
+              echo "Générez une valeur avec : openssl rand -base64 32" >&2
+              echo "ATTENTION : la changer rend les comptes existants irrécupérables." >&2
+              exit 1
+            fi
+
             umask 077
             cat > secrets.env <<EOF
             GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            MASTER_KEY=${MASTER_KEY}
             EOF
 
             docker compose -p opsidious-auth pull
@@ -116,3 +130,4 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          MASTER_KEY: ${{ secrets.MASTER_KEY }}

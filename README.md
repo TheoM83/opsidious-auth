@@ -137,6 +137,14 @@ anonymity guarantee, stated precisely enough to be tested.
   issuer failed the exchange outright with `"response" body "access_token"
   property must be a string`. `refresh_token` is optional, so it stays absent:
   there is no long-lived grant to refresh.
+- **Rien d'utilisable dans la base seule.** La clé privée de signature et le
+  pepper sont scellés sous `MASTER_KEY`, qui vit dans l'environnement et
+  n'apparaît nulle part en base. Ce n'est pas une précaution théorique : avec le
+  seul fichier de base, un jeton portant `sub: "JE-SUIS-QUI-JE-VEUX"` a été
+  forgé et accepté contre le JWKS publié. Une sauvegarde égarée, un disque
+  revendu ou un dump suffisaient. Les deux usages ont des `info` HKDF distincts,
+  donc ouvrir le pepper n'ouvre pas les clés. `test/at-rest.test.js` le vérifie,
+  y compris que la clé maîtresse n'a atterri dans aucune table.
 - **A `__Host-` prefixed, host-only SSO cookie.** `__Host-opsid_sso` carries
   no `Domain` attribute, so it is never readable by a sibling subdomain —
   the whole subdomain-trust question disappears rather than needing to be
