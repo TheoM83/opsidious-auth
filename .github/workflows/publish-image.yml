@@ -118,6 +118,29 @@ jobs:
 
           # umask AVANT toute ecriture : entre la creation et un chmod
           # ulterieur, le fichier est lisible par tout le monde.
+          # Meme raison que MASTER_KEY, apprise chez tarkovxyz : un secret
+          # absent s'ecrit en valeur vide, le conteneur demarre, /healthz
+          # repond, le run passe au vert -- et plus personne ne peut se
+          # connecter. Sans client id, l'echange avec Google echoue des la
+          # redirection ; sans client secret, il echoue a l'etape du jeton.
+          #
+          # Deux tests ecrits en toutes lettres plutot qu'une boucle sur les
+          # noms : la boucle etait plus courte et illisible, et le controle de
+          # mercury ne la reconnaissait pas comme une garde.
+          if [ -z "${GOOGLE_CLIENT_ID:-}" ]; then
+            echo "Le secret GOOGLE_CLIENT_ID est vide ou absent du depot." >&2
+            echo "Sans lui, le service demarre mais aucune connexion n'aboutit." >&2
+            echo "Sa valeur vient des identifiants OAuth de la console Google Cloud." >&2
+            exit 1
+          fi
+
+          if [ -z "${GOOGLE_CLIENT_SECRET:-}" ]; then
+            echo "Le secret GOOGLE_CLIENT_SECRET est vide ou absent du depot." >&2
+            echo "Sans lui, l'echange du code contre un jeton echoue a chaque connexion." >&2
+            echo "Sa valeur vient des identifiants OAuth de la console Google Cloud." >&2
+            exit 1
+          fi
+
           umask 077
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id
