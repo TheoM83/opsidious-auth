@@ -79,55 +79,78 @@ jobs:
       # "the workflow succeeded" say nothing about whether the service is
       # actually running.
       #
+      # The fragment used to be fetched over HTTP from raw.githubusercontent.
+      # That worked here only because this repository is public: the same line
+      # returned 404 on the two private repositories and took tarkovxyz.com
+      # offline. A deploy that depends on the repository staying public is a
+      # trap waiting for the day it does not. The runner has just checked the
+      # repository out at the exact commit CI passed - it HAS the file, so it
+      # sends it over the SSH connection that is already open.
+      #
       # The image is pushed by the step above, so letting this one fail loudly
       # costs nothing: the image is already published either way, and a red run
       # is the only honest report when the server was not updated.
       - name: Deploy on mercury (SSH)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Passed through the action's env rather than interpolated into the
-          # script, so the values never appear in the rendered command line.
-          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,MASTER_KEY
-          script: |
-            set -euo pipefail
-            APP_DIR="$HOME/apps/opsidious-auth"
-            mkdir -p "$APP_DIR" "$HOME/opsidious-auth/backups"
-            cd "$APP_DIR"
-
-            # The fragment is fetched from this repository, so the file the
-            # server runs is always the one this commit describes.
-            curl -fsSL -o docker-compose.yml \
-              "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/deploy/docker-compose.yml"
-
-            # umask BEFORE the write, not a chmod after: between creation and a
-            # later chmod the file is world-readable.
-            # Sans MASTER_KEY, le service refuse de démarrer en production —
-            # et il a raison : sans elle, la clé de signature et le pepper
-            # seraient écrits en clair, et une sauvegarde suffirait à forger un
-            # jeton pour n'importe qui. Refuser ici nomme le secret manquant au
-            # lieu de laisser un conteneur mourir en boucle.
-            if [ -z "${MASTER_KEY:-}" ]; then
-              echo "Le secret MASTER_KEY est vide ou absent du dépôt." >&2
-              echo "Créez-le dans Settings > Secrets and variables > Actions." >&2
-              echo "Générez une valeur avec : openssl rand -base64 32" >&2
-              echo "ATTENTION : la changer rend les comptes existants irrécupérables." >&2
-              exit 1
-            fi
-
-            umask 077
-            cat > secrets.env <<EOF
-            GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-            GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-            MASTER_KEY=${MASTER_KEY}
-            EOF
-
-            docker compose -p opsidious-auth pull
-            docker compose -p opsidious-auth up -d
-            echo "opsidious-auth redeployed"
         env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_USER: ${{ secrets.SERVER_USERNAME }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           MASTER_KEY: ${{ secrets.MASTER_KEY }}
+        run: |
+          # Pas de `set -x` : une trace ferait echo aux lignes sur lesquelles
+          # les secrets voyagent.
+          set -euo pipefail
+
+          # Sans MASTER_KEY, le service refuse de demarrer en production - et il
+          # a raison : sans elle, la cle de signature et le pepper seraient
+          # ecrits en clair, et une sauvegarde suffirait a forger un jeton pour
+          # n'importe qui. Refuser ici nomme le secret manquant au lieu de
+          # laisser un conteneur mourir en boucle.
+          if [ -z "${MASTER_KEY:-}" ]; then
+            echo "Le secret MASTER_KEY est vide ou absent du depot." >&2
+            echo "Creez-le dans Settings > Secrets and variables > Actions." >&2
+            echo "Generez une valeur avec : openssl rand -base64 32" >&2
+            echo "ATTENTION : la changer rend les comptes existants irrecuperables." >&2
+            exit 1
+          fi
+
+          # umask AVANT toute ecriture : entre la creation et un chmod
+          # ulterieur, le fichier est lisible par tout le monde.
+          umask 077
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          cat > secrets.env <<EOF
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+          MASTER_KEY=${MASTER_KEY}
+          EOF
+
+          SSH_OPTS="-i $HOME/.ssh/id -o StrictHostKeyChecking=yes"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST"             "mkdir -p ~/apps/opsidious-auth ~/opsidious-auth/backups && chmod 700 ~/apps/opsidious-auth"
+          scp $SSH_OPTS deploy/docker-compose.yml secrets.env             "$SSH_USER@$SSH_HOST:~/apps/opsidious-auth/"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST"             "cd ~/apps/opsidious-auth && chmod 600 secrets.env && docker compose -p opsidious-auth pull && docker compose -p opsidious-auth up -d"
+
+          # `up -d` rend la main des que le conteneur est CREE, pas quand
+          # l'application fonctionne. Sans cette verification, un conteneur qui
+          # meurt au demarrage laisse un run vert et un domaine en 404. Le
+          # demarrage ouvre la base, lit-ou-frappe le pepper et la premiere cle,
+          # puis balaye et sauvegarde : 60 s couvrent largement.
+          echo "Verification que le service repond..."
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" '
+            for i in $(seq 1 30); do
+              if docker exec opsidious-auth wget -q -O- http://127.0.0.1:4570/healthz >/dev/null 2>&1; then
+                echo "opsidious-auth repond"; exit 0
+              fi
+              sleep 2
+            done
+            echo "opsidious-auth ne repond pas apres 60 s :" >&2
+            docker ps -a --filter name=opsidious-auth --format "{{.Names}} | {{.Status}}" >&2
+            docker logs opsidious-auth 2>&1 | tail -30 >&2
+            exit 1'
+
+          rm -f ~/.ssh/id secrets.env
+          echo "opsidious-auth redeployed"
