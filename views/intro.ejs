@@ -1,38 +1,47 @@
 <article class="intro">
-  <header class="intro-head">
-    <h1>Vous allez vous connecter avec Google.</h1>
+  <div class="intro-card">
+    <img class="intro-mark" src="/emblem.svg" alt="" width="44" height="44" />
+
+    <h1>Connexion anonyme</h1>
     <p class="lede">
-      Opsidious se place entre les deux. Voici exactement ce que chacun saura —
-      c’est tout le mécanisme, et il n’y a rien d’autre à comprendre.
+      Opsidious vous connecte avec Google, puis efface le lien entre les deux.
+      Voici exactement ce que chacun saura.
     </p>
-  </header>
 
-  <%# Le mécanisme rendu visible. Trois cellules, une par partie, chacune disant
-      ce qu'elle sait ET ce qu'elle ne sait pas. C'est vérifiable, contrairement
-      au mot « anonyme » que tous les services emploient. %>
-  <ol class="chain">
-    <li>
-      <span class="chain-who">Google</span>
-      <p><b>Sait</b> que vous vous connectez à Opsidious.</p>
-      <p class="chain-not"><b>Ne sait pas</b> à quelle application.</p>
-    </li>
-    <li>
-      <span class="chain-who">Opsidious</span>
-      <p><b>Reçoit</b> un identifiant Google opaque.</p>
-      <p class="chain-not"><b>Ne reçoit</b> ni votre e-mail, ni votre nom.</p>
-    </li>
-    <li>
-      <span class="chain-who">L’application</span>
-      <p><b>Reçoit</b> un identifiant qui n’a de sens que chez elle.</p>
-      <p class="chain-not"><b>Ne peut pas</b> vous reconnaître ailleurs.</p>
-    </li>
-  </ol>
+    <%# Le mécanisme, pas l'adjectif. « Anonyme » ne vaut rien — tous les
+        services l'emploient. Ce qui convainc, c'est de pouvoir vérifier qui
+        voit quoi, et surtout qui ne voit pas quoi. %>
+    <ul class="chain">
+      <li>
+        <span class="chain-who">Google</span>
+        <span class="chain-yes">Sait que vous vous connectez à Opsidious.</span>
+        <span class="chain-no">Pas à quelle application.</span>
+      </li>
+      <li>
+        <span class="chain-who">Opsidious</span>
+        <span class="chain-yes">Reçoit un identifiant Google opaque.</span>
+        <span class="chain-no">Ni votre e-mail, ni votre nom.</span>
+      </li>
+      <li>
+        <span class="chain-who">L’application</span>
+        <span class="chain-yes">Reçoit un identifiant propre à elle seule.</span>
+        <span class="chain-no">Inutilisable pour vous suivre ailleurs.</span>
+      </li>
+    </ul>
 
-  <a class="btn big intro-go" href="<%= vers %>">Continuer avec Google</a>
+    <a class="gbtn" href="<%= vers %>">
+      <img class="gbtn__g" src="/google-g.svg" alt="" width="18" height="18" />
+      Continuer avec Google
+    </a>
 
-  <p class="intro-note">
-    Cet écran ne s’affiche qu’une fois. Vos prochaines connexions seront
-    immédiates.
+    <p class="intro-note">
+      Une seule fois. Vos prochaines connexions seront immédiates.
+    </p>
+  </div>
+
+  <p class="intro-foot">
     <a href="/account">Voir ce qui est enregistré sur moi</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer">Code source</a>
   </p>
 </article>

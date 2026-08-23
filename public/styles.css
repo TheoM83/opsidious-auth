@@ -446,91 +446,161 @@ footer a {
 
 /* ── Écran d'introduction ───────────────────────────────────────────────────
    Affiché une seule fois par navigateur, au moment où quelqu'un décide de
-   faire confiance. Il montre le mécanisme au lieu de répéter « anonyme » —
-   l'adjectif ne vaut rien, tous les services l'emploient ; la chaîne se
-   vérifie.                                                                  */
+   faire confiance. Une carte centrée et courte : c'est un point de passage,
+   pas une page à lire.                                                      */
 
 .intro {
   width: 100%;
-  max-width: 620px;
+  max-width: 420px;
+  margin: auto;
   text-align: left;
 }
-.intro-head {
-  margin-bottom: 34px;
+.intro-card {
+  padding: 32px 28px 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.intro-mark {
+  display: block;
+  margin-bottom: 20px;
 }
 .intro h1 {
-  font-size: clamp(25px, 6vw, 34px);
-  line-height: 1.18;
-  letter-spacing: -0.02em;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+.intro .lede {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
-/* Les trois parties, dans l'ordre où la connexion les traverse. Numérotées
-   parce que c'est un trajet : le chiffre porte l'ordre, pas un ornement. */
+/* Trois lignes, une par partie. Pas de numéros : ce n'est pas une procédure à
+   suivre, c'est un état de fait à constater — le chiffre n'apporterait rien
+   qu'un ornement. */
 .chain {
   list-style: none;
-  counter-reset: maillon;
-  margin: 0 0 30px;
+  margin: 0 0 26px;
   padding: 0;
   border-top: 1px solid var(--line);
 }
 .chain li {
-  counter-increment: maillon;
-  position: relative;
-  padding: 18px 0 18px 34px;
+  display: grid;
+  gap: 2px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--line);
 }
-.chain li::before {
-  content: counter(maillon);
-  position: absolute;
-  left: 0;
-  top: 19px;
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 10px;
-}
 .chain-who {
-  display: block;
-  margin-bottom: 7px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
+  margin-bottom: 3px;
 }
-.chain p {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.5;
+.chain-yes {
+  font-size: 14px;
+  line-height: 1.45;
 }
-.chain b {
-  font-weight: 600;
-}
-/* Ce que la partie NE sait pas est la moitié qui compte : c'est elle qui
-   distingue ce service d'une connexion Google ordinaire. */
-.chain-not {
+/* Ce que la partie NE voit pas est la moitié qui compte : c'est elle qui
+   distingue ce service d'une connexion Google ordinaire. Le trait vermillon
+   la désigne sans avoir à la crier. */
+.chain-no {
+  position: relative;
+  padding-left: 15px;
   color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.45;
 }
-.chain-not b {
-  color: var(--brand);
-  font-weight: 600;
+.chain-no::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 8px;
+  height: 1px;
+  background: var(--brand);
 }
 
-.intro-go {
-  width: 100%;
-}
 .intro-note {
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12.5px;
+  text-align: center;
 }
-.intro-note a {
+.intro-foot {
+  margin: 18px 0 0;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  color: var(--line);
+  font-size: 12.5px;
+}
+.intro-foot a {
   color: var(--muted);
+}
+
+/* ── Bouton « Continuer avec Google » ───────────────────────────────────────
+   Conforme aux règles de marque de Google, relevées à la source plutôt
+   qu'approximées : fond #131314, contour #8E918F d'un pixel à l'intérieur,
+   texte #E3E3E3 pour le thème sombre — 12px avant le logo, 10px après, 12px
+   après le texte.
+
+   Le « G » est le logo officiel en quatre couleurs, tel quel. La spécification
+   interdit de le recolorer, de le passer en monochrome, de l'utiliser seul
+   sans le bouton, et de le poser sur un fond autre que les trois prévus.
+   « Continuer avec Google » est une formulation autorisée, et la localisation
+   est encouragée.
+
+   Une déviation assumée : la spécification demande Google Sans Medium, qui
+   n'est pas distribuée en police web. La charger depuis un tiers sur la page
+   d'un service dont l'argument est la confidentialité serait une contradiction
+   plus coûteuse que l'écart typographique. Pile système, donc.               */
+
+.gbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  box-sizing: border-box;
+
+  background: #131314;
+  color: #e3e3e3;
+  border: 1px solid #8e918f;
+  border-radius: 22px;
+
+  font:
+    500 14px/20px system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  letter-spacing: 0.15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.gbtn:hover {
+  background: #1c1c1e;
+  border-color: #a5a8a6;
+}
+.gbtn:active {
+  background: #232326;
+}
+.gbtn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+.gbtn__g {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
