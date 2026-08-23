@@ -21,6 +21,7 @@
     "register-client": "node --env-file-if-exists=.env scripts/register-client.mjs"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",

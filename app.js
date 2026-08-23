@@ -1,6 +1,7 @@
 // Builds the Express app with NO side effects: importing this file must not
 // open a database, bind a port, or start a timer. server.js owns all of that.
 import express from 'express';
+import compression from 'compression';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { dirname, join } from 'node:path';
@@ -21,6 +22,40 @@ app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', join(here, 'views'));
 app.disable('x-powered-by');
+
+// Refuse explicitement les capacités que l'application n'utilise pas. Ne rien
+// dire les laisse disponibles : une page compromise pourrait demander la caméra
+// ou la position sans que rien ne s'y oppose. Les nommer coûte un en-tête et
+// ferme la question.
+const PERMISSIONS_POLICY = [
+  'accelerometer=()',
+  'ambient-light-sensor=()',
+  'autoplay=()',
+  'battery=()',
+  'camera=()',
+  'display-capture=()',
+  'geolocation=()',
+  'gyroscope=()',
+  'idle-detection=()',
+  'magnetometer=()',
+  'microphone=()',
+  'midi=()',
+  'payment=()',
+  'screen-wake-lock=()',
+  'serial=()',
+  'usb=()',
+  'xr-spatial-tracking=()'
+].join(', ');
+
+// Le JWKS est relu par chaque application à chaque démarrage, et les pages
+// sont du texte très répétitif. Defnote compressait, ce service non.
+app.use(compression());
+
+// Refuse explicitement les capacités que l'application n'utilise pas.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+  next();
+});
 
 app.use(
   helmet({
