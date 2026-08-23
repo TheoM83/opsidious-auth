@@ -7,7 +7,7 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { app as authApp, initForTest } from '../app.js';
 import { closeDatabase, dbAll } from '../lib/database.js';
 import { __setTransport } from '../lib/google.js';
-import { ISSUER } from '../lib/config.js';
+import { ISSUER, SEEN_COOKIE_NAME } from '../lib/config.js';
 import { registerTestClient } from './helpers.js';
 import { opsidiousAuth } from '../client/index.js';
 
@@ -60,7 +60,11 @@ async function signIn() {
 
   // A browser would follow this redirect to the auth service, which is what
   // actually parks the request and hands back the real redirect to Google.
-  const authorize = await request(authApp).get(toGoogle.pathname + toGoogle.search);
+  // Le cookie « déjà vu » : l'écran d'introduction ne s'affiche qu'à la
+  // première visite d'un navigateur, et ce test porte sur le flux complet.
+  const authorize = await request(authApp)
+    .get(toGoogle.pathname + toGoogle.search)
+    .set('Cookie', `${SEEN_COOKIE_NAME}=1`);
   const requestId = new URL(authorize.headers.location).searchParams.get('state');
 
   const parked = await dbAll('SELECT google_nonce FROM auth_requests WHERE id = ?', [requestId]);

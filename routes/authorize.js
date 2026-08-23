@@ -7,9 +7,27 @@ import { issueCode } from '../lib/codes.js';
 import { pairwiseSubject, randomToken } from '../lib/crypto.js';
 import { authorizeUrl } from '../lib/google.js';
 import { renderError } from '../lib/middleware.js';
-import { AUTH_REQUEST_TTL_MS, SSO_COOKIE_NAME } from '../lib/config.js';
+import { join } from 'node:path';
+import { AUTH_REQUEST_TTL_MS, SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 
 const router = Router();
+
+// L'écran n'a qu'un lien, vers Google. Il ne poste rien, ne lit rien, et
+// n'exécute aucun script : c'est une page qui explique et laisse passer.
+function renderIntro(res, next, vers) {
+  res.render(
+    join(res.app.get('views'), 'intro.ejs'),
+    { vers },
+    (err, body) => {
+      if (err) return next(err);
+      res.render(
+        join(res.app.get('views'), 'layout.ejs'),
+        { title: 'Connexion', body },
+        (e, html) => (e ? next(e) : res.send(html))
+      );
+    }
+  );
+}
 
 // Only ever called with a redirect_uri that has already been matched exactly
 // against the client's registered list.
@@ -94,8 +112,7 @@ router.get('/authorize', async (req, res, next) => {
       return redirectBack(res, redirectUri, { error: 'login_required', state });
     }
 
-    // Park the request so /callback/google can resume it, then go straight to
-    // Google. There is no sign-in page (spec §6).
+    // La demande est garée pour que /callback/google la reprenne.
     const id = randomUUID();
     const googleNonce = randomToken(24);
     await dbRun(
@@ -104,7 +121,35 @@ router.get('/authorize', async (req, res, next) => {
       [id, clientId, redirectUri, state, nonce, googleNonce, Date.now() + AUTH_REQUEST_TTL_MS]
     );
 
-    res.redirect(302, authorizeUrl({ state: id, nonce: googleNonce, forceChooser: prompt === 'login' }));
+    const vers = authorizeUrl({ state: id, nonce: googleNonce, forceChooser: prompt === 'login' });
+
+    // Le §6 disait « aucune page intermédiaire, direct chez Google ». Cette
+    // décision supposait que les gens sachent ce qu'est Opsidious. Ils ne le
+    // savent pas : le mot « anonyme » ne vaut rien, tous les services
+    // l'emploient, et ce qui convainc est de MONTRER le mécanisme.
+    //
+    // Le seul moment où quelqu'un a envie de le lire, c'est celui où il décide
+    // de faire confiance. Cet écran ne s'affiche donc qu'ici, et une seule fois
+    // par navigateur : un cookie dit que l'explication a été vue, et les
+    // connexions suivantes repassent en direct.
+    //
+    // L'alternative était un script servi aux applications, façon One Tap. Un
+    // produit dont l'argument est « personne ne vous piste » ne peut pas faire
+    // tourner son code sur toutes les pages de toutes les applications : c'est
+    // la forme exacte de ce qu'il dénonce, et ça se voit dans un onglet réseau.
+    if (req.cookies?.[SEEN_COOKIE_NAME] === '1') {
+      return res.redirect(302, vers);
+    }
+
+    res.cookie(SEEN_COOKIE_NAME, '1', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 365 * 24 * 3600 * 1000
+    });
+
+    return renderIntro(res, next, vers);
   } catch (err) {
     next(err);
   }

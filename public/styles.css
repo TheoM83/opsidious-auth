@@ -77,7 +77,8 @@ h2 {
   border: 0;
   border-radius: 16px;
   background: var(--brand);
-  color: #17171e;
+  /* Texte SOMBRE, jamais clair : 5,16 de contraste contre 3,46. */
+  color: var(--bg);
   font: inherit;
   font-weight: 600;
   text-decoration: none;
@@ -441,4 +442,95 @@ footer a {
   width: 8px;
   height: 1px;
   background: var(--brand);
+}
+
+/* ── Écran d'introduction ───────────────────────────────────────────────────
+   Affiché une seule fois par navigateur, au moment où quelqu'un décide de
+   faire confiance. Il montre le mécanisme au lieu de répéter « anonyme » —
+   l'adjectif ne vaut rien, tous les services l'emploient ; la chaîne se
+   vérifie.                                                                  */
+
+.intro {
+  width: 100%;
+  max-width: 620px;
+  text-align: left;
+}
+.intro-head {
+  margin-bottom: 34px;
+}
+.intro h1 {
+  font-size: clamp(25px, 6vw, 34px);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+/* Les trois parties, dans l'ordre où la connexion les traverse. Numérotées
+   parce que c'est un trajet : le chiffre porte l'ordre, pas un ornement. */
+.chain {
+  list-style: none;
+  counter-reset: maillon;
+  margin: 0 0 30px;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.chain li {
+  counter-increment: maillon;
+  position: relative;
+  padding: 18px 0 18px 34px;
+  border-bottom: 1px solid var(--line);
+}
+.chain li::before {
+  content: counter(maillon);
+  position: absolute;
+  left: 0;
+  top: 19px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.chain-who {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chain p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.chain b {
+  font-weight: 600;
+}
+/* Ce que la partie NE sait pas est la moitié qui compte : c'est elle qui
+   distingue ce service d'une connexion Google ordinaire. */
+.chain-not {
+  color: var(--muted);
+}
+.chain-not b {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.intro-go {
+  width: 100%;
+}
+.intro-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.intro-note a {
+  color: var(--muted);
 }

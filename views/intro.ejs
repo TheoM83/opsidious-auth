@@ -1,0 +1,38 @@
+<article class="intro">
+  <header class="intro-head">
+    <h1>Vous allez vous connecter avec Google.</h1>
+    <p class="lede">
+      Opsidious se place entre les deux. Voici exactement ce que chacun saura —
+      c’est tout le mécanisme, et il n’y a rien d’autre à comprendre.
+    </p>
+  </header>
+
+  <%# Le mécanisme rendu visible. Trois cellules, une par partie, chacune disant
+      ce qu'elle sait ET ce qu'elle ne sait pas. C'est vérifiable, contrairement
+      au mot « anonyme » que tous les services emploient. %>
+  <ol class="chain">
+    <li>
+      <span class="chain-who">Google</span>
+      <p><b>Sait</b> que vous vous connectez à Opsidious.</p>
+      <p class="chain-not"><b>Ne sait pas</b> à quelle application.</p>
+    </li>
+    <li>
+      <span class="chain-who">Opsidious</span>
+      <p><b>Reçoit</b> un identifiant Google opaque.</p>
+      <p class="chain-not"><b>Ne reçoit</b> ni votre e-mail, ni votre nom.</p>
+    </li>
+    <li>
+      <span class="chain-who">L’application</span>
+      <p><b>Reçoit</b> un identifiant qui n’a de sens que chez elle.</p>
+      <p class="chain-not"><b>Ne peut pas</b> vous reconnaître ailleurs.</p>
+    </li>
+  </ol>
+
+  <a class="btn big intro-go" href="<%= vers %>">Continuer avec Google</a>
+
+  <p class="intro-note">
+    Cet écran ne s’affiche qu’une fois. Vos prochaines connexions seront
+    immédiates.
+    <a href="/account">Voir ce qui est enregistré sur moi</a>
+  </p>
+</article>

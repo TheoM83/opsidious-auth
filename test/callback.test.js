@@ -4,7 +4,7 @@ import request from 'supertest';
 import { app, initForTest } from '../app.js';
 import { closeDatabase, dbAll, dbGet } from '../lib/database.js';
 import { __setTransport } from '../lib/google.js';
-import { SSO_COOKIE_NAME } from '../lib/config.js';
+import { SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession, resolveSession } from '../lib/sessions.js';
 import { registerTestClient, CALLBACK } from './helpers.js';
@@ -34,6 +34,7 @@ beforeEach(async () => {
 async function startFlow(over = {}) {
   const res = await request(app)
     .get('/authorize')
+    .set('Cookie', `${SEEN_COOKIE_NAME}=1`)
     .query({
       client_id: 'defnote',
       redirect_uri: CALLBACK,
@@ -163,6 +164,7 @@ test('re-authenticating (prompt=login) revokes the session named by the cookie t
 
   const started = await request(app)
     .get('/authorize')
+    .set('Cookie', `${SEEN_COOKIE_NAME}=1`)
     .query({
       client_id: 'defnote',
       redirect_uri: CALLBACK,
@@ -172,7 +174,7 @@ test('re-authenticating (prompt=login) revokes the session named by the cookie t
       nonce: 'n1',
       prompt: 'login'
     })
-    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}`);
+    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}; ${SEEN_COOKIE_NAME}=1`);
   const requestId = new URL(started.headers.location).searchParams.get('state');
 
   const parked = await dbGet('SELECT google_nonce FROM auth_requests WHERE id = ?', [requestId]);
@@ -183,7 +185,7 @@ test('re-authenticating (prompt=login) revokes the session named by the cookie t
   const res = await request(app)
     .get('/callback/google')
     .query({ code: 'google-code', state: requestId })
-    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}`); // the browser still holds its old cookie mid-flow
+    .set('Cookie', `${SSO_COOKIE_NAME}=${oldCookie}; ${SEEN_COOKIE_NAME}=1`); // the browser still holds its old cookie mid-flow
 
   const newCookie = res.headers['set-cookie']
     .find((c) => c.startsWith(SSO_COOKIE_NAME))
@@ -205,6 +207,7 @@ test('the second sign-in is silent and never contacts Google again', async () =>
   });
   const silent = await request(app)
     .get('/authorize')
+    .set('Cookie', `${SEEN_COOKIE_NAME}=1`)
     .query({
       client_id: 'defnote',
       redirect_uri: CALLBACK,

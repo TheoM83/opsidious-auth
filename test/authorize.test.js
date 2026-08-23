@@ -5,7 +5,7 @@ import { app, initForTest } from '../app.js';
 import { closeDatabase, dbAll, dbRun } from '../lib/database.js';
 import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession } from '../lib/sessions.js';
-import { SSO_COOKIE_NAME } from '../lib/config.js';
+import { SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 import { __setTransport } from '../lib/google.js';
 import { registerTestClient, CALLBACK } from './helpers.js';
 
@@ -27,6 +27,9 @@ afterEach(() => {
 const authorize = (over = {}) =>
   request(app)
     .get('/authorize')
+    // L'écran d'introduction ne s'affiche qu'à la toute première visite d'un
+    // navigateur. Ces tests portent sur le flux, pas sur lui : il a le sien.
+    .set('Cookie', `${SEEN_COOKIE_NAME}=1`)
     .query({
       client_id: 'defnote',
       redirect_uri: CALLBACK,
@@ -37,10 +40,13 @@ const authorize = (over = {}) =>
       ...over
     });
 
+// Les deux cookies ensemble : supertest REMPLACE l'en-tête Cookie, il ne le
+// complète pas — poser le sien écrasait donc celui du helper, et le test
+// tombait sur l'écran d'introduction.
 async function sessionCookie() {
   const { account, pairwiseSalt } = await signInWithGoogleSub(`sub-${Math.random()}`);
   const { cookieValue } = await createSession(account.id, pairwiseSalt);
-  return `${SSO_COOKIE_NAME}=${cookieValue}`;
+  return `${SSO_COOKIE_NAME}=${cookieValue}; ${SEEN_COOKIE_NAME}=1`;
 }
 
 test('with no session it redirects straight to Google', async () => {
@@ -150,7 +156,7 @@ test('a session cookie that resolves to nothing is treated as anonymous', async 
   // Genuine TTL expiry is covered at the unit level in test/sessions.test.js;
   // this only proves the endpoint falls back to the no-session path for a
   // cookie value with no matching row at all.
-  const res = await authorize().set('Cookie', `${SSO_COOKIE_NAME}=not-a-real-session`);
+  const res = await authorize().set('Cookie', `${SSO_COOKIE_NAME}=not-a-real-session; ${SEEN_COOKIE_NAME}=1`);
   assert.equal(res.status, 302);
   assert.match(res.headers.location, /accounts\.google\.com/);
 });
