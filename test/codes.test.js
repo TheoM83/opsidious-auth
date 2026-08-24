@@ -414,5 +414,60 @@ test('the tombstone clears the challenge along with everything else', async () =
   });
   const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
   assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
   assert.equal(row.client_id, null);
+});
+
+test('a PKCE mismatch tombstones the challenge method along with the challenge', async () => {
+  // The pkce_mismatch path has its own tombstoning UPDATE, separate from the
+  // success path above and from the plain rejection path below - each of the
+  // three needs its own read-back, since a review found the third
+  // (code_challenge_method) missing from all three despite a passing test
+  // that only ever checked the success path and never read the full column
+  // set back.
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  const result = await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: 'E'.repeat(43)
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'pkce_mismatch');
+
+  const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
+  assert.equal(row.app_sub, null);
+  assert.equal(row.client_id, null);
+  assert.equal(row.nonce, null);
+  assert.equal(row.redirect_uri, null);
+  assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
+});
+
+test('a plain rejection tombstones the challenge method along with everything else', async () => {
+  // Same read-back gap as above, but for the ordinary rejection path (an
+  // expired or wrong-redirect presentation by the code's own owner).
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  const result = await consumeCode(code, { clientId: 'defnote', redirectUri: CALLBACK }, NOW + 61_000);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'expired');
+
+  const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
+  assert.equal(row.app_sub, null);
+  assert.equal(row.client_id, null);
+  assert.equal(row.nonce, null);
+  assert.equal(row.redirect_uri, null);
+  assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
 });

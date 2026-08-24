@@ -120,9 +120,10 @@ This is the product, not a footnote.
   that window links that one account to that one application. Two mechanisms
   keep the window to sixty seconds and no longer:
   - the moment a code is consumed or rejected, the same `UPDATE` that marks
-    it spent **nulls `app_sub`, `client_id`, `redirect_uri` and `nonce`**,
-    leaving a tombstone that can still detect a replay and still revoke a
-    session but no longer names an application;
+    it spent **nulls `app_sub`, `client_id`, `redirect_uri`, `nonce`,
+    `code_challenge` and `code_challenge_method`**, leaving a tombstone that
+    can still detect a replay and still revoke a session but no longer names
+    an application — or betrays that it belonged to a public client;
   - a code that is simply abandoned — browser closed, back button, an
     application backend that never exchanges it — has no such `UPDATE` to
     clear it, so a dedicated sweep runs every 30 seconds and deletes it
