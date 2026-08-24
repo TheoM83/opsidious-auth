@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getClient, verifyClientSecret } from '../lib/clients.js';
+import { getClient, verifyClientSecret, isPublicClient } from '../lib/clients.js';
 import { consumeCode } from '../lib/codes.js';
 import { randomToken } from '../lib/crypto.js';
 import { signIdToken } from '../lib/tokens.js';
@@ -32,12 +32,33 @@ router.post('/token', tokenLimiter, async (req, res, next) => {
     // unknown client id all answer with this one uniform shape, so a caller
     // gains nothing by probing.
     const client = await getClient(clientId);
-    if (!verifyClientSecret(client, String(body.client_secret ?? ''))) {
+    if (!client) {
+      console.warn(`token rejected: unknown client ${clientId || '(none)'}`);
+      return res.status(401).json({ error: 'invalid_client' });
+    }
+
+    // A public client authenticates with nothing - that is what public means.
+    // Its proof is the code_verifier, checked inside consumeCode against the
+    // challenge the authorization request carried.
+    //
+    // A secret sent by a public client is ignored rather than rejected: there
+    // is no secret on record to compare it to, and answering differently for a
+    // present and an absent one would tell a caller which kind of client an id
+    // names. That is the same reasoning as the uniform invalid_client shape
+    // above, applied one level in.
+    if (!isPublicClient(client) && !verifyClientSecret(client, String(body.client_secret ?? ''))) {
       console.warn(`token rejected: bad client credentials for ${clientId || '(none)'}`);
       return res.status(401).json({ error: 'invalid_client' });
     }
 
-    const result = await consumeCode(String(body.code ?? ''), { clientId, redirectUri });
+    const result = await consumeCode(String(body.code ?? ''), {
+      clientId,
+      redirectUri,
+      // Absent is a value here: consumeCode refuses a challenged code with no
+      // verifier, and that must stay a grant failure rather than becoming a
+      // separate, distinguishable error.
+      codeVerifier: body.code_verifier == null ? null : String(body.code_verifier)
+    });
     if (!result.ok) {
       console.warn(`token rejected for ${clientId}: ${result.reason}`);
       return res.status(400).json(INVALID_GRANT);
