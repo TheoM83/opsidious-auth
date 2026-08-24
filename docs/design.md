@@ -57,10 +57,16 @@ its auth can be replaced now at no migration cost.
 
 **Out of scope (and why)**
 
-- **PKCE.** Every Opsidious app is a confidential server-side client that
-  exchanges the code from its own backend using a secret. `state`, a 60-second
-  single-use code, and exact `redirect_uri` matching cover the threat. Adding
-  PKCE later is additive and breaks nothing.
+- **PKCE.** ~~Out of scope~~ — implemented for public clients on 2026-08-24. The
+  original reasoning held while every Opsidious app was a confidential
+  server-side client exchanging the code from its own backend with a secret.
+  An installed desktop application cannot do that: the secret would ship inside
+  a binary on every user's machine. Public clients now register with
+  `--public`, are REQUIRED to send a `code_challenge` with
+  `code_challenge_method=S256` at `/authorize`, and present a `code_verifier`
+  instead of a secret at `/token`. `plain` is refused. Confidential clients are
+  unchanged and may use PKCE optionally. The addition was additive, exactly as
+  this section predicted.
 - **Refresh tokens and access tokens.** There is no Opsidious API to call on a
   user's behalf. The service issues an ID token and nothing else.
 - **Full OIDC discovery, `userinfo`, dynamic registration.** This design is a
@@ -1149,7 +1155,8 @@ ghcr.io` step for this service on the server.
 
 Recorded so they are choices rather than oversights.
 
-- **PKCE** — needed the day a public client (mobile, SPA) appears.
+- ~~**PKCE**~~ — that day came: Sediment, an installed desktop application.
+  Implemented 2026-08-24, S256 only. See §1.
 - **Back-channel logout** — needed the day "sign out everywhere" has to reach
   app sessions rather than just the SSO session.
 - **`access_token` and a `userinfo` endpoint** — needed the day a third-party
