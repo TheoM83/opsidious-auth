@@ -7,13 +7,16 @@ import { __setTransport } from '../lib/google.js';
 import { SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession, resolveSession } from '../lib/sessions.js';
-import { registerTestClient, CALLBACK } from './helpers.js';
+import { registerTestClient, registerTestPublicClient, CALLBACK, LOOPBACK } from './helpers.js';
+import { sha256 } from '../lib/crypto.js';
 
 const GOOGLE_SUB = '109384756102938475610';
+const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 
 before(async () => {
   await initForTest();
   await registerTestClient({ id: 'defnote' });
+  await registerTestPublicClient({ id: 'sediment', redirectUris: [LOOPBACK] });
 });
 after(async () => {
   await closeDatabase();
@@ -220,4 +223,27 @@ test('the second sign-in is silent and never contacts Google again', async () =>
 
   assert.equal(silent.status, 302);
   assert.ok(new URL(silent.headers.location).searchParams.get('code'));
+});
+
+test('a code minted after the Google round trip keeps the parked challenge', async () => {
+  // Without this, PKCE would work only for a user who already had a session -
+  // that is, never on a first sign-in, which is the only path a freshly
+  // installed desktop application ever takes. The live-session path is covered
+  // in test/authorize.test.js; this is the other half.
+  const requestId = await startFlow({
+    client_id: 'sediment',
+    redirect_uri: LOOPBACK,
+    code_challenge: RFC_CHALLENGE,
+    code_challenge_method: 'S256'
+  });
+
+  const res = await completeFlow(requestId);
+  const code = new URL(res.headers.location).searchParams.get('code');
+  assert.ok(code, 'the round trip must come back with a code');
+
+  const row = await dbGet('SELECT code_challenge, code_challenge_method FROM codes WHERE code_hash = ?', [
+    sha256(code)
+  ]);
+  assert.equal(row.code_challenge, RFC_CHALLENGE);
+  assert.equal(row.code_challenge_method, 'S256');
 });
