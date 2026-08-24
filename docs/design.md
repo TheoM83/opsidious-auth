@@ -57,10 +57,16 @@ its auth can be replaced now at no migration cost.
 
 **Out of scope (and why)**
 
-- **PKCE.** Every Opsidious app is a confidential server-side client that
-  exchanges the code from its own backend using a secret. `state`, a 60-second
-  single-use code, and exact `redirect_uri` matching cover the threat. Adding
-  PKCE later is additive and breaks nothing.
+- **PKCE.** ~~Out of scope~~ — implemented for public clients on 2026-08-24. The
+  original reasoning held while every Opsidious app was a confidential
+  server-side client exchanging the code from its own backend with a secret.
+  An installed desktop application cannot do that: the secret would ship inside
+  a binary on every user's machine. Public clients now register with
+  `--public`, are REQUIRED to send a `code_challenge` with
+  `code_challenge_method=S256` at `/authorize`, and present a `code_verifier`
+  instead of a secret at `/token`. `plain` is refused. Confidential clients are
+  unchanged and may use PKCE optionally. The addition was additive, exactly as
+  this section predicted.
 - **Refresh tokens and access tokens.** There is no Opsidious API to call on a
   user's behalf. The service issues an ID token and nothing else.
 - **Full OIDC discovery, `userinfo`, dynamic registration.** This design is a
@@ -416,11 +422,14 @@ Three things a normal service would store and this one does not:
 
   - **Tombstoning.** The moment a code is resolved — consumed *or* rejected —
     the same `UPDATE` that records the outcome sets `app_sub`, `client_id`,
-    `redirect_uri` and `nonce` to `NULL`. What survives is exactly what
-    replay detection and session revocation need: `code_hash`, `used`,
-    `expires_at` and `sso_session_id`. A spent row can still cost a thief
-    the session (§7.5) and can no longer name an application. This is why
-    those four columns are nullable in §5, against the original schema.
+    `redirect_uri`, `nonce`, `code_challenge` and `code_challenge_method` to
+    `NULL`. What survives is exactly what replay detection, session
+    revocation and the stale-wedge check need: `code_hash`, `used`,
+    `expires_at`, `sso_session_id` and `created_at`. A spent row can still
+    cost a thief the session (§7.5) and can no longer name an application —
+    nor, since PKCE landed, betray that it belonged to a public client. This
+    is why those six columns are nullable in §5, against the original
+    schema.
   - **A dedicated sweep.** A code that is *abandoned* rather than resolved —
     browser closed, back button, an application backend that never
     exchanges it — has no `UPDATE` coming to tombstone it, so nulling on
@@ -455,39 +464,45 @@ clients (
   name          TEXT NOT NULL,
   secret_hash   TEXT NOT NULL,         -- sha256 of a 32-byte random secret
   redirect_uris TEXT NOT NULL,         -- JSON array, matched exactly
+  is_public     INTEGER NOT NULL DEFAULT 0,  -- 0 confidential, 1 public (PKCE instead of a secret; §1)
   created_at    INTEGER NOT NULL
 )
 
 -- One in-flight /authorize, parked across the Google round trip.
 auth_requests (
-  id           TEXT PRIMARY KEY,
-  client_id    TEXT NOT NULL,          -- [diverged] no REFERENCES, see below
-  redirect_uri TEXT NOT NULL,
-  state        TEXT NOT NULL,
-  nonce        TEXT,
-  google_nonce TEXT NOT NULL,
-  expires_at   INTEGER NOT NULL        -- 10 minutes
+  id                    TEXT PRIMARY KEY,
+  client_id             TEXT NOT NULL, -- [diverged] no REFERENCES, see below
+  redirect_uri          TEXT NOT NULL,
+  state                 TEXT NOT NULL,
+  nonce                 TEXT,
+  google_nonce          TEXT NOT NULL,
+  code_challenge        TEXT,          -- S256 challenge, carried through to the issued code (§1)
+  code_challenge_method TEXT,          -- always 'S256' when present; 'plain' is refused
+  expires_at            INTEGER NOT NULL  -- 10 minutes
 )
 
 -- [diverged] Every field here is nullable that the original design declared
 -- NOT NULL, and that is the point rather than a relaxation: `app_sub`,
--- `client_id`, `redirect_uri` and `nonce` are nulled by the same UPDATE that
--- resolves the code, leaving a tombstone that can still detect a replay and
--- still revoke a session without naming an application (§4.2). Because the
--- schema can no longer enforce them at insert time, issueCode() validates
--- them itself: a caller bug that used to fail loudly as SQLITE_CONSTRAINT
--- would otherwise be accepted and surface later as a code that can never
--- legitimately validate.
+-- `client_id`, `redirect_uri`, `nonce`, `code_challenge` and
+-- `code_challenge_method` are nulled by the same UPDATE that resolves the
+-- code, leaving a tombstone that can still detect a replay and still revoke
+-- a session without naming an application — or betraying that it belonged
+-- to a public client (§4.2). Because the schema can no longer enforce them
+-- at insert time, issueCode() validates them itself: a caller bug that used
+-- to fail loudly as SQLITE_CONSTRAINT would otherwise be accepted and
+-- surface later as a code that can never legitimately validate.
 codes (
-  code_hash      TEXT PRIMARY KEY,     -- sha256; the code itself is never stored
-  app_sub        TEXT,                 -- already derived; NOT account_id, see §4.2
-  client_id      TEXT,
-  redirect_uri   TEXT,
-  nonce          TEXT,
-  sso_session_id TEXT,                 -- deleted if this code is replayed
-  used           INTEGER NOT NULL DEFAULT 0,   -- an outcome, not a flag; see below
-  expires_at     INTEGER NOT NULL,     -- 60 seconds
-  created_at     INTEGER NOT NULL
+  code_hash              TEXT PRIMARY KEY,  -- sha256; the code itself is never stored
+  app_sub                TEXT,     -- already derived; NOT account_id, see §4.2
+  client_id              TEXT,
+  redirect_uri           TEXT,
+  nonce                  TEXT,
+  code_challenge         TEXT,     -- S256 challenge parked at /authorize; PKCE, §1
+  code_challenge_method  TEXT,     -- always 'S256' when present
+  sso_session_id         TEXT,     -- deleted if this code is replayed
+  used                   INTEGER NOT NULL DEFAULT 0,  -- an outcome, not a flag; see below
+  expires_at             INTEGER NOT NULL,  -- 60 seconds
+  created_at             INTEGER NOT NULL   -- also needed by the stale-wedge check in consumeCode
 )
 
 sso_sessions (
@@ -1149,7 +1164,8 @@ ghcr.io` step for this service on the server.
 
 Recorded so they are choices rather than oversights.
 
-- **PKCE** — needed the day a public client (mobile, SPA) appears.
+- ~~**PKCE**~~ — that day came: Sediment, an installed desktop application.
+  Implemented 2026-08-24, S256 only. See §1.
 - **Back-channel logout** — needed the day "sign out everywhere" has to reach
   app sessions rather than just the SSO session.
 - **`access_token` and a `userinfo` endpoint** — needed the day a third-party

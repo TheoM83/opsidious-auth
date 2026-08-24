@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initDatabase, closeDatabase, dbGet } from '../lib/database.js';
-import { createClient, getClient, verifyClientSecret, redirectAllowed } from '../lib/clients.js';
+import { createClient, getClient, verifyClientSecret, redirectAllowed, isPublicClient } from '../lib/clients.js';
 
 const CALLBACK = 'https://defnote.opsidious.com/auth/callback';
 
@@ -85,4 +85,37 @@ test('a client may register several redirect URIs', async () => {
 
 test('an unknown client is undefined, not an error', async () => {
   assert.equal(await getClient('nobody'), undefined);
+});
+
+test('a public client is stored with no usable secret', async () => {
+  const { client, secret } = await createClient({
+    id: 'sediment',
+    name: 'Sediment',
+    redirectUris: ['http://127.0.0.1:47821/callback'],
+    isPublic: true
+  });
+
+  assert.equal(secret, null, 'a public client has no secret to hand back');
+  assert.equal(client.is_public, 1);
+  assert.equal(isPublicClient(client), true);
+
+  // secret_hash is NOT NULL in the schema, so the row holds something. The
+  // property that matters is that no secret anyone could present matches it -
+  // including the empty string, which is what a caller sending no secret at
+  // all produces at /token.
+  assert.ok(client.secret_hash, 'the column is NOT NULL, so it must hold something');
+  assert.equal(verifyClientSecret(client, ''), false);
+  assert.equal(verifyClientSecret(client, client.secret_hash), false);
+});
+
+test('a confidential client is unchanged and is not public', async () => {
+  const { client, secret } = await createClient({
+    id: 'still-confidential',
+    name: 'Confidential',
+    redirectUris: ['https://conf.test/cb']
+  });
+  assert.equal(typeof secret, 'string');
+  assert.equal(client.is_public, 0);
+  assert.equal(isPublicClient(client), false);
+  assert.equal(verifyClientSecret(client, secret), true);
 });

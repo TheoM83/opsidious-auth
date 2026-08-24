@@ -55,7 +55,6 @@ test('it promises no capability this service lacks', async () => {
   // standard client attempt a flow this server does not implement.
   assert.equal(body.userinfo_endpoint, undefined, 'there is no userinfo endpoint');
   assert.equal(body.registration_endpoint, undefined, 'dynamic registration is a non-goal');
-  assert.equal(body.code_challenge_methods_supported, undefined, 'PKCE is a non-goal');
   assert.ok(!(body.grant_types_supported || []).includes('refresh_token'));
   assert.deepEqual(body.response_types_supported, ['code']);
   assert.deepEqual(body.id_token_signing_alg_values_supported, ['RS256']);
@@ -67,4 +66,21 @@ test('the front door is a page, not a 404', async () => {
   assert.match(res.headers['content-type'], /html/);
   // It must route a curious visitor onward rather than dead-end them.
   assert.match(res.text, /\/account/);
+});
+
+test('discovery advertises S256 and none', async () => {
+  const res = await request(app).get('/.well-known/openid-configuration');
+  assert.deepEqual(res.body.code_challenge_methods_supported, ['S256']);
+  // `none` is the standard name for "this client presents no credential",
+  // which is exactly what a public client does at /token.
+  assert.deepEqual(res.body.token_endpoint_auth_methods_supported, ['client_secret_post', 'none']);
+});
+
+test('discovery never advertises plain', async () => {
+  // A discovery document that promises a capability the server lacks is worse
+  // than no document: a standard library configures itself against the promise
+  // and fails at the call. The inverse holds too - this service refuses plain,
+  // so it must never appear here.
+  const res = await request(app).get('/.well-known/openid-configuration');
+  assert.ok(!res.body.code_challenge_methods_supported.includes('plain'));
 });

@@ -25,12 +25,20 @@ import { DB_PATH } from '../lib/config.js';
 // a secret nobody has to remember not to paste somewhere.
 const argv = process.argv.slice(2);
 const secretOnly = argv.includes('--secret-only');
-const [id, name, ...redirectUris] = argv.filter((a) => a !== '--secret-only');
+// A public client cannot hold a secret: an installed application would carry
+// it in its binary on every user's machine. It proves itself with PKCE.
+const isPublic = argv.includes('--public');
+const [id, name, ...redirectUris] = argv.filter((a) => a !== '--secret-only' && a !== '--public');
 
 if (!id || !name || redirectUris.length === 0) {
   console.error(
-    'usage: npm run register-client -- [--secret-only] <client_id> <name> <redirect_uri> [redirect_uri...]'
+    'usage: npm run register-client -- [--secret-only] [--public] <client_id> <name> <redirect_uri> [redirect_uri...]'
   );
+  process.exit(1);
+}
+
+if (isPublic && secretOnly) {
+  console.error('--public and --secret-only are contradictory: a public client has no secret');
   process.exit(1);
 }
 
@@ -41,7 +49,22 @@ console.error(`target database: ${DB_PATH || '(default: ./data/opsidious-auth.db
 
 await initDatabase();
 try {
-  const { secret } = await createClient({ id, name, redirectUris });
+  const { secret } = await createClient({ id, name, redirectUris, isPublic });
+
+  if (isPublic) {
+    console.log('');
+    console.log(`  client_id      ${id}`);
+    console.log('  client_secret  (none - this is a public client)');
+    console.log('');
+    console.log('  It authenticates with PKCE instead: /authorize will REQUIRE a');
+    console.log('  code_challenge with code_challenge_method=S256, and /token will require');
+    console.log('  the matching code_verifier. A request without one is refused.');
+    console.log(`  Redirect URIs are matched EXACTLY - a trailing slash is a different URI:`);
+    for (const uri of redirectUris) console.log(`    ${uri}`);
+    console.log('');
+    await closeDatabase();
+    process.exit(0);
+  }
 
   if (secretOnly) {
     // Everything explanatory goes to stderr; stdout carries the secret alone.

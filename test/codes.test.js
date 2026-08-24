@@ -5,10 +5,13 @@ import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession, resolveSession } from '../lib/sessions.js';
 import { issueCode, consumeCode, sweepCodes } from '../lib/codes.js';
 import { CODE_RECOVERY_GRACE_MS } from '../lib/config.js';
+import { sha256 } from '../lib/crypto.js';
 
 const NOW = 1_800_000_000_000;
 const CLIENT = 'defnote';
 const CALLBACK = 'https://defnote.test/auth/callback';
+const RFC_VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 
 const issue = (over = {}, now = NOW) =>
   issueCode({ appSub: 'sub-abc', clientId: CLIENT, redirectUri: CALLBACK, nonce: 'n1', ...over }, now);
@@ -322,4 +325,149 @@ test('a third presentation of a rejected-then-replayed code still returns replay
   const third = await consumeCode(code, { clientId: CLIENT, redirectUri: CALLBACK }, NOW);
   assert.equal(third.ok, false);
   assert.equal(third.reason, 'replayed');
+});
+
+test('a code issued with a challenge needs the matching verifier', async () => {
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+
+  const result = await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: RFC_VERIFIER
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.row.app_sub, 'pairwise-abc');
+});
+
+test('a wrong verifier is refused AND burns the code', async () => {
+  // Burning it is the point. If a failed verification left the code usable,
+  // whoever intercepted it could brute-force the verifier one request at a
+  // time - which is precisely the attack PKCE exists to stop.
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+
+  const first = await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: 'E'.repeat(43)
+  });
+  assert.equal(first.ok, false);
+  assert.equal(first.reason, 'pkce_mismatch');
+
+  const second = await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: RFC_VERIFIER
+  });
+  assert.equal(second.ok, false, 'the correct verifier must not rescue a burnt code');
+});
+
+test('a missing verifier on a challenged code is refused', async () => {
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  const result = await consumeCode(code, { clientId: 'defnote', redirectUri: CALLBACK });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'pkce_mismatch');
+});
+
+test('a code issued without a challenge still consumes with no verifier', async () => {
+  // The confidential path, unchanged. This is the regression guard for every
+  // client already deployed.
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    nonce: 'n1'
+  });
+  const result = await consumeCode(code, { clientId: 'defnote', redirectUri: CALLBACK });
+  assert.equal(result.ok, true);
+});
+
+test('the tombstone clears the challenge along with everything else', async () => {
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: RFC_VERIFIER
+  });
+  const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
+  assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
+  assert.equal(row.client_id, null);
+});
+
+test('a PKCE mismatch tombstones the challenge method along with the challenge', async () => {
+  // The pkce_mismatch path has its own tombstoning UPDATE, separate from the
+  // success path above and from the plain rejection path below - each of the
+  // three needs its own read-back, since a review found the third
+  // (code_challenge_method) missing from all three despite a passing test
+  // that only ever checked the success path and never read the full column
+  // set back.
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  const result = await consumeCode(code, {
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeVerifier: 'E'.repeat(43)
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'pkce_mismatch');
+
+  const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
+  assert.equal(row.app_sub, null);
+  assert.equal(row.client_id, null);
+  assert.equal(row.nonce, null);
+  assert.equal(row.redirect_uri, null);
+  assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
+});
+
+test('a plain rejection tombstones the challenge method along with everything else', async () => {
+  // Same read-back gap as above, but for the ordinary rejection path (an
+  // expired or wrong-redirect presentation by the code's own owner).
+  const code = await issueCode({
+    appSub: 'pairwise-abc',
+    clientId: 'defnote',
+    redirectUri: CALLBACK,
+    codeChallenge: RFC_CHALLENGE,
+    codeChallengeMethod: 'S256'
+  });
+  const result = await consumeCode(code, { clientId: 'defnote', redirectUri: CALLBACK }, NOW + 61_000);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'expired');
+
+  const row = await dbGet('SELECT * FROM codes WHERE code_hash = ?', [sha256(code)]);
+  assert.equal(row.app_sub, null);
+  assert.equal(row.client_id, null);
+  assert.equal(row.nonce, null);
+  assert.equal(row.redirect_uri, null);
+  assert.equal(row.code_challenge, null);
+  assert.equal(row.code_challenge_method, null);
 });

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { dbRun } from '../lib/database.js';
-import { getClient, redirectAllowed } from '../lib/clients.js';
+import { getClient, redirectAllowed, isPublicClient } from '../lib/clients.js';
 import { resolveSession } from '../lib/sessions.js';
 import { issueCode } from '../lib/codes.js';
-import { pairwiseSubject, randomToken } from '../lib/crypto.js';
+import { pairwiseSubject, randomToken, isValidCodeChallenge } from '../lib/crypto.js';
 import { authorizeUrl } from '../lib/google.js';
 import { renderError } from '../lib/middleware.js';
 import { join } from 'node:path';
@@ -92,6 +92,30 @@ router.get('/authorize', async (req, res, next) => {
       return redirectBack(res, redirectUri, { error: 'invalid_scope', state });
     }
 
+    // PKCE (RFC 7636). S256 only - see lib/crypto.js for why `plain` is absent.
+    const codeChallenge = req.query.code_challenge ? String(req.query.code_challenge) : null;
+    const codeChallengeMethod = req.query.code_challenge_method ? String(req.query.code_challenge_method) : null;
+
+    if (codeChallengeMethod && codeChallengeMethod !== 'S256') {
+      return redirectBack(res, redirectUri, { error: 'invalid_request', state });
+    }
+    // RFC 7636 §4.3 defaults a missing method to `plain`, which this service
+    // refuses. Guessing S256 on the client's behalf would silently accept a
+    // request whose author may genuinely have meant plain, and hand them a
+    // code their verifier will never open.
+    if (codeChallenge && !codeChallengeMethod) {
+      return redirectBack(res, redirectUri, { error: 'invalid_request', state });
+    }
+    if (codeChallenge && !isValidCodeChallenge(codeChallenge)) {
+      return redirectBack(res, redirectUri, { error: 'invalid_request', state });
+    }
+    // A public client presents no secret at /token, so the challenge is the
+    // only thing standing between a stolen code and a token. Not optional.
+    if (isPublicClient(client) && !codeChallenge) {
+      console.warn(`authorize rejected: public client ${clientId} sent no code_challenge`);
+      return redirectBack(res, redirectUri, { error: 'invalid_request', state });
+    }
+
     // A live session, unless the application explicitly asked to re-authenticate.
     const existing = prompt === 'login' ? null : await resolveSession(req.cookies?.[SSO_COOKIE_NAME]);
 
@@ -101,7 +125,9 @@ router.get('/authorize', async (req, res, next) => {
         clientId,
         redirectUri,
         nonce,
-        ssoSessionId: existing.session.id
+        ssoSessionId: existing.session.id,
+        codeChallenge,
+        codeChallengeMethod
       });
       return redirectBack(res, redirectUri, { code, state });
     }
@@ -116,9 +142,20 @@ router.get('/authorize', async (req, res, next) => {
     const id = randomUUID();
     const googleNonce = randomToken(24);
     await dbRun(
-      `INSERT INTO auth_requests (id, client_id, redirect_uri, state, nonce, google_nonce, expires_at)
-       VALUES (?,?,?,?,?,?,?)`,
-      [id, clientId, redirectUri, state, nonce, googleNonce, Date.now() + AUTH_REQUEST_TTL_MS]
+      `INSERT INTO auth_requests (id, client_id, redirect_uri, state, nonce, google_nonce,
+                                  code_challenge, code_challenge_method, expires_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [
+        id,
+        clientId,
+        redirectUri,
+        state,
+        nonce,
+        googleNonce,
+        codeChallenge,
+        codeChallengeMethod,
+        Date.now() + AUTH_REQUEST_TTL_MS
+      ]
     );
 
     const vers = authorizeUrl({ state: id, nonce: googleNonce, forceChooser: prompt === 'login' });

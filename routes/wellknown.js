@@ -15,9 +15,13 @@ const router = Router();
 // discovery document that promises a capability the server lacks is worse than
 // no document at all: a standard library would configure itself against the
 // promise and fail at the call. So `scopes_supported` is `openid` alone,
-// `response_types_supported` is `code` alone, and there is no
-// `code_challenge_methods_supported` because PKCE is deliberately absent (§1 -
-// every client is a confidential server-side client with a secret).
+// `response_types_supported` is `code` alone, and `code_challenge_methods_supported`
+// lists S256 and only S256. §1 called PKCE out of scope because every client was a
+// confidential server-side one, and §14 recorded the condition that would end that:
+// "needed the day a public client (mobile, SPA) appears". A desktop application is
+// that day - it cannot hold a secret, because the secret would ship inside a binary
+// on every user's machine. `plain` stays absent: it sends the verifier through the
+// same channel that may already be leaking the code.
 //
 // `subject_types_supported: ["pairwise"]` is the one line that states the whole
 // product in the vocabulary of the standard: each application receives a
@@ -32,7 +36,8 @@ const DISCOVERY = Object.freeze({
   grant_types_supported: ['authorization_code'],
   subject_types_supported: ['pairwise'],
   id_token_signing_alg_values_supported: ['RS256'],
-  token_endpoint_auth_methods_supported: ['client_secret_post'],
+  token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
+  code_challenge_methods_supported: ['S256'],
   scopes_supported: ['openid'],
   // No email, no profile, no name: the service never receives them, so it
   // could not put them in a token even if a client asked.

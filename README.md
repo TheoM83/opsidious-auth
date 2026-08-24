@@ -63,6 +63,33 @@ option list, the error shapes you can see in `req.opsidious.error`, and
 `internalUrl` for calling the service over a private network instead of the
 public internet.
 
+### Public clients
+
+A desktop, mobile or single-page application cannot hold a `clientSecret` — it
+would ship inside something every user can read, and a secret everyone can read
+authenticates nothing. Those register as **public clients** and prove
+themselves with PKCE instead:
+
+```bash
+npm run register-client -- --public sediment "Sediment" http://127.0.0.1:47821/callback
+```
+
+A public client MUST send `code_challenge` with `code_challenge_method=S256` to
+`/authorize`, and the matching `code_verifier` to `/token`. It sends no
+`client_secret`. `plain` is refused: it would send the verifier through the same
+channel that may already be leaking the code.
+
+Native applications must use the **system browser**, never an embedded web view
+— RFC 8252 §8.12. An application that owns the control the password is typed
+into can read it, which defeats the entire delegation. Register a loopback
+redirect URI on a fixed port; URIs are matched by exact string equality, so
+`127.0.0.1` and `localhost` are different URIs and every port must be
+registered.
+
+`opsidious-auth/client` remains a confidential-client library and is unchanged.
+A public client implements the flow directly against `/authorize` and `/token`,
+using the discovery document at `/.well-known/openid-configuration`.
+
 To get a `clientId` / `clientSecret` pair, an operator of this service runs
 [`scripts/register-client.mjs`](scripts/register-client.mjs) once — see
 [Registering an application](#registering-an-application) below.
@@ -93,9 +120,10 @@ This is the product, not a footnote.
   that window links that one account to that one application. Two mechanisms
   keep the window to sixty seconds and no longer:
   - the moment a code is consumed or rejected, the same `UPDATE` that marks
-    it spent **nulls `app_sub`, `client_id`, `redirect_uri` and `nonce`**,
-    leaving a tombstone that can still detect a replay and still revoke a
-    session but no longer names an application;
+    it spent **nulls `app_sub`, `client_id`, `redirect_uri`, `nonce`,
+    `code_challenge` and `code_challenge_method`**, leaving a tombstone that
+    can still detect a replay and still revoke a session but no longer names
+    an application — or betrays that it belonged to a public client;
   - a code that is simply abandoned — browser closed, back button, an
     application backend that never exchanges it — has no such `UPDATE` to
     clear it, so a dedicated sweep runs every 30 seconds and deletes it

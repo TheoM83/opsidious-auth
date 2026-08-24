@@ -2,16 +2,22 @@ import { test, before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { app, initForTest } from '../app.js';
-import { closeDatabase, dbAll, dbRun } from '../lib/database.js';
+import { closeDatabase, dbAll, dbGet, dbRun } from '../lib/database.js';
 import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession } from '../lib/sessions.js';
 import { SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 import { __setTransport } from '../lib/google.js';
-import { registerTestClient, CALLBACK } from './helpers.js';
+import { sha256 } from '../lib/crypto.js';
+import { registerTestClient, registerTestPublicClient, CALLBACK, LOOPBACK } from './helpers.js';
+
+// RFC_VERIFIER is not declared here: this file's tests never present a
+// verifier, only a challenge, and the unused-vars lint rule is 'error'.
+const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 
 before(async () => {
   await initForTest();
   await registerTestClient({ id: 'defnote' });
+  await registerTestPublicClient({ id: 'sediment', redirectUris: [LOOPBACK] });
 });
 after(async () => {
   await closeDatabase();
@@ -244,4 +250,66 @@ test('unrecognised OIDC parameters are ignored, not rejected', async () => {
   const url = new URL(res.headers.location);
   assert.ok(url.searchParams.get('code'), 'the flow must still complete');
   assert.equal(url.searchParams.get('error'), null);
+});
+
+const authorizePublic = (over = {}) => authorize({ client_id: 'sediment', redirect_uri: LOOPBACK, ...over });
+
+const errorOf = (res) => new URL(res.headers.location).searchParams.get('error');
+
+test('a public client must send a code_challenge', async () => {
+  const res = await authorizePublic();
+  assert.equal(res.status, 302);
+  const url = new URL(res.headers.location);
+  assert.equal(url.searchParams.get('error'), 'invalid_request');
+  assert.equal(url.searchParams.get('state'), 's1', 'state must ride back with the error');
+});
+
+test('plain is refused, even though RFC 7636 allows it', async () => {
+  // Supporting `plain` would send the verifier through the same channel that
+  // may already be leaking the code. Refusing it is the whole point.
+  const res = await authorizePublic({
+    code_challenge: RFC_CHALLENGE,
+    code_challenge_method: 'plain'
+  });
+  assert.equal(errorOf(res), 'invalid_request');
+});
+
+test('a malformed challenge is refused', async () => {
+  const res = await authorizePublic({
+    code_challenge: 'too-short',
+    code_challenge_method: 'S256'
+  });
+  assert.equal(errorOf(res), 'invalid_request');
+});
+
+test('a challenge without its method is refused', async () => {
+  // RFC 7636 defaults a missing method to `plain`, which this service refuses.
+  // Guessing S256 on the client's behalf would accept a request whose author
+  // may genuinely have meant plain.
+  const res = await authorizePublic({ code_challenge: RFC_CHALLENGE });
+  assert.equal(errorOf(res), 'invalid_request');
+});
+
+test('a confidential client may still omit PKCE entirely', async () => {
+  // The regression guard for every client already deployed: no challenge, no
+  // error, straight on to Google.
+  const res = await authorize();
+  assert.equal(res.status, 302);
+  assert.match(res.headers.location, /^https:\/\/accounts\.google\.com\//);
+});
+
+test('a live session issues a code carrying the challenge', async () => {
+  const res = await authorizePublic({
+    code_challenge: RFC_CHALLENGE,
+    code_challenge_method: 'S256'
+  }).set('Cookie', await sessionCookie());
+
+  const code = new URL(res.headers.location).searchParams.get('code');
+  assert.ok(code, 'a live session must return a code directly, without going to Google');
+
+  const row = await dbGet('SELECT code_challenge, code_challenge_method FROM codes WHERE code_hash = ?', [
+    sha256(code)
+  ]);
+  assert.equal(row.code_challenge, RFC_CHALLENGE);
+  assert.equal(row.code_challenge_method, 'S256');
 });

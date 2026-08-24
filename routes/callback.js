@@ -83,7 +83,9 @@ router.get('/callback/google', async (req, res, next) => {
       clientId: parked.client_id,
       redirectUri: parked.redirect_uri,
       nonce: parked.nonce,
-      ssoSessionId: session.id
+      ssoSessionId: session.id,
+      codeChallenge: parked.code_challenge,
+      codeChallengeMethod: parked.code_challenge_method
     });
 
     // Staged only once nothing else can fail: if issueCode had thrown after the
