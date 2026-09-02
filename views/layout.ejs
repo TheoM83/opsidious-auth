@@ -1,32 +1,66 @@
 <!doctype html>
-<html lang="fr">
+<html lang="<%= locale %>">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title><%= title === 'Opsidious' ? title : title + ' — Opsidious' %></title>
-    <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#0d0d10" />
+    <%# La page d'accueil est publique et doit être trouvable : le service est
+        ouvert à n'importe quelle application, et une porte d'entrée qu'aucun
+        moteur ne peut indexer n'est ouverte que pour ceux à qui on l'a dite.
+        Tout le reste — connexion, compte — reste hors index. %>
+    <% if (typeof noindex === 'undefined' || noindex) { %>
+      <meta name="robots" content="noindex" />
+    <% } else { %>
+      <meta name="description" content="<%= t('home.lede') %>" />
+    <% } %>
+    <meta name="theme-color" content="#0b0b0e" />
     <link rel="icon" href="/emblem.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip" href="#main"><%= t('layout.skip') %></a>
+
     <%# L'emblème mène à l'accueil et rien d'autre : c'est un service
         d'identité, pas un produit à explorer. Une seule destination, donc un
-        seul lien. %>
+        seul lien — et la langue vit en pied de page, pour que cette règle
+        reste vraie. %>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Opsidious, accueil">
-        <img src="/emblem-mark.svg" alt="" width="24" height="24" />
-        <span>Opsidious</span>
+      <a class="brand" href="/" aria-label="<%= t('common.homeAria') %>">
+        <img src="/emblem-mark.svg" alt="" width="22" height="22" />
+        <span><%= t('common.brand') %></span>
       </a>
     </header>
 
-    <main><%- body %></main>
+    <%# `tabindex="-1"` : sans lui, WebKit fait défiler jusqu'à l'ancre mais
+        laisse le focus sur le lien d'évitement, et la tabulation suivante
+        repart du haut — le lien ne sert alors à rien pour qui s'en sert. %>
+    <main id="main" tabindex="-1"><%- body %></main>
 
     <footer>
-      <span>Opsidious</span>
-      <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer">Code source</a>
+      <span class="foot-brand"><%= t('common.brand') %></span>
+
+      <%# Un lien par langue, écrit dans cette langue. `next` renvoie exactement
+          là où l'on était : sur /authorize, cela veut dire la demande de
+          connexion en cours, paramètres compris. %>
+      <nav class="langs" aria-label="Langue · Language">
+        <% locales.forEach(function (l) { %>
+          <% if (l.code === locale) { %>
+            <span class="lang lang--current" lang="<%= l.code %>" aria-current="page"><%= l.endonym %></span>
+          <% } else { %>
+            <a
+              class="lang"
+              lang="<%= l.code %>"
+              hreflang="<%= l.code %>"
+              href="/lang/<%= l.code %>?next=<%= encodeURIComponent(currentPath) %>"
+              aria-label="<%= t('common.langAria', { lang: l.endonym }) %>"
+            ><%= l.endonym %></a>
+          <% } %>
+        <% }); %>
+      </nav>
+
+      <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer"><%= t('common.source') %></a>
     </footer>
   </body>
 </html>

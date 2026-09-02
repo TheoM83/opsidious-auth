@@ -104,7 +104,7 @@ This is the product, not a footnote.
   no email, name or picture to store, log, discard, or promise to delete,
   because it is never requested in the first place.
 - **Every application gets a different, unrelated subject for the same
-  person.** `req.opsidious.sub` is *pairwise*: derived from the account and
+  person.** `req.opsidious.sub` is _pairwise_: derived from the account and
   the requesting application's `client_id`, and recomputed on every token
   issue rather than stored. Two applications comparing their databases row by
   row cannot tell they share a user, because there is nothing shared between
@@ -163,7 +163,7 @@ anonymity guarantee, stated precisely enough to be tested.
   because RFC 6749 §5.1 and OIDC Core §3.1.3.3 require it — omitting it was the
   original design, and pointing the reference client (`openid-client`) at this
   issuer failed the exchange outright with `"response" body "access_token"
-  property must be a string`. `refresh_token` is optional, so it stays absent:
+property must be a string`. `refresh_token` is optional, so it stays absent:
   there is no long-lived grant to refresh.
 - **Rien d'utilisable dans la base seule.** La clé privée de signature et le
   pepper sont scellés sous `MASTER_KEY`, qui vit dans l'environnement et
@@ -179,11 +179,11 @@ anonymity guarantee, stated precisely enough to be tested.
   reasoned about. `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`. Its value
   is 32 random bytes; only its hash is stored.
 - **`POST /token` has exactly two failure shapes, and each one is
-  indistinguishable inside itself.** Every *grant* failure answers
+  indistinguishable inside itself.** Every _grant_ failure answers
   `400 {"error":"invalid_grant"}` — a code that was wrong, expired, already
   used, never issued, presented with the wrong `redirect_uri`, or issued to a
   different client all produce the identical body, so probing tells a caller
-  nothing about which. Every *client-authentication* failure answers
+  nothing about which. Every _client-authentication_ failure answers
   `401 {"error":"invalid_client"}` — an unknown `client_id`, a wrong secret
   and a missing secret are likewise identical to each other. The two groups are
   deliberately told apart, and that is not a leak: a `client_id` is public by
@@ -206,7 +206,7 @@ anonymity guarantee, stated precisely enough to be tested.
   what lets the service tell a leak from a mistake. **A code presented again
   after it was successfully consumed, or presented twice at once, deletes the
   SSO session it was issued from**, so a stolen code is worth strictly less
-  than nothing to whoever replays it. A code merely *rejected* — expired, or
+  than nothing to whoever replays it. A code merely _rejected_ — expired, or
   the wrong redirect URI — deletes nothing: a mismatch is not evidence of a
   leak, and signing a person out over their own application's
   misconfiguration would be a denial of service with extra steps. A row left
@@ -223,11 +223,11 @@ anonymity guarantee, stated precisely enough to be tested.
   registered allowlist — no prefix, suffix, case-insensitive, or
   query-string-tolerant matching. An invalid `client_id` or `redirect_uri`
   renders an error page and never issues a redirect, because redirecting to
-  an unverified URI *is* the open-redirect vulnerability.
+  an unverified URI _is_ the open-redirect vulnerability.
 - Full security requirement list, numbered so each one is a test: §7 of
   [`docs/design.md`](docs/design.md).
 
-## What is *not* defended
+## What is _not_ defended
 
 A security document that claims more than it delivers is worse than one
 that claims less, so this is stated as plainly as the guarantees above.
@@ -253,17 +253,17 @@ anything the mechanism is designed to resist:
   The `clients` table enumerates every registered application, so an
   adversary holding the dump and one person's Google subject does not
   recover that person's subject in one application — they unwrap the salt
-  once and derive it in *all* of them, with one HMAC per registered client.
+  once and derive it in _all_ of them, with one HMAC per registered client.
   There is no "which applications did they use" question left to answer;
   the answer is "all of them, if they used them".
 - **Matching Google subjects is a bulk sweep, not a per-person cost.** The
-  lookup pepper is in the dump too, in `settings`. Anyone holding a *corpus*
+  lookup pepper is in the dump too, in `settings`. Anyone holding a _corpus_
   of candidate Google subjects — from another breach, or from any service
   that stores them — can hash the whole corpus under that pepper and join it
   against `google_sub_hash` in one pass, embarrassingly parallel and with no
   per-account work. The design document's older phrasing, that deanonymising
   someone is "a per-person cost, not a bulk one", is true only of the
-  *unwrapping* step; it was never true of finding out which rows are in your
+  _unwrapping_ step; it was never true of finding out which rows are in your
   corpus, and that is corrected in
   [`docs/design.md` §4.3](docs/design.md#43-the-salt-is-never-at-rest-in-the-clear).
 
@@ -273,6 +273,16 @@ anything the mechanism is designed to resist:
   identifiers, which is far too large a space to enumerate exhaustively — so
   the hashes can be matched against a list someone already holds, never
   turned back into an identifier on their own.
+
+**Open registration is open to bad applications too.** Anyone can register,
+so a hostile application can — and it gets exactly what an honest one gets: a
+subject that is useless anywhere else. What it does not get is a way to reach
+the person, a way to find them in another application, or any standing with
+this service. What it _can_ do is sign its own users in, which is what a
+sign-in is for. The sign-in screen never displays a name an application chose,
+precisely so it cannot be used to impersonate one; the residual risk is a
+person who does not read the address bar, which is the residual risk of every
+identity provider on the web.
 
 **Someone holding both an application's database and this service's
 database can correlate the two.** The pairwise subject is a deterministic
@@ -319,15 +329,15 @@ set to exactly `{PUBLIC_URL}/callback/google`.
 
 ### Required environment variables
 
-| Variable                | Required | Notes                                                                                          |
-| ------------------------ | -------- | ------------------------------------------------------------------------------------------------ |
-| `PUBLIC_URL`             | yes      | The service's public origin. Used as the `iss` claim, the redirect URI base, and the cookie scope. No default — nothing here is hardcoded to any domain, so self-hosting under another domain needs no code change. |
-| `GOOGLE_CLIENT_ID`       | yes      | Google OAuth **web application** client id.                                                     |
-| `GOOGLE_CLIENT_SECRET`   | yes      | Google OAuth client secret. A real secret — keep it out of anything committed.                  |
-| `ISSUER`                 | no       | Overrides the `iss` claim if it must differ from `PUBLIC_URL`. Defaults to `PUBLIC_URL`.        |
-| `DB_PATH`                | no       | Defaults to `./data/opsidious-auth.db`.                                                          |
-| `BACKUP_DIR`             | no       | See [Backups](#backups-and-restores) below. With none set, the service runs with **no backups** and logs a warning on boot. |
-| `BACKUP_RETENTION_DAYS`  | no       | Defaults to 14.                                                                                  |
+| Variable                | Required | Notes                                                                                                                                                                                                               |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`            | yes      | The service's public origin. Used as the `iss` claim, the redirect URI base, and the cookie scope. No default — nothing here is hardcoded to any domain, so self-hosting under another domain needs no code change. |
+| `GOOGLE_CLIENT_ID`      | yes      | Google OAuth **web application** client id.                                                                                                                                                                         |
+| `GOOGLE_CLIENT_SECRET`  | yes      | Google OAuth client secret. A real secret — keep it out of anything committed.                                                                                                                                      |
+| `ISSUER`                | no       | Overrides the `iss` claim if it must differ from `PUBLIC_URL`. Defaults to `PUBLIC_URL`.                                                                                                                            |
+| `DB_PATH`               | no       | Defaults to `./data/opsidious-auth.db`.                                                                                                                                                                             |
+| `BACKUP_DIR`            | no       | See [Backups](#backups-and-restores) below. With none set, the service runs with **no backups** and logs a warning on boot.                                                                                         |
+| `BACKUP_RETENTION_DAYS` | no       | Defaults to 14.                                                                                                                                                                                                     |
 
 The full list, including session/code/key lifetimes and rate limits, is in
 [`.env.example`](.env.example). The process refuses to start without
@@ -335,6 +345,75 @@ The full list, including session/code/key lifetimes and rate limits, is in
 misconfigured deployment fails at boot, not at the first sign-in.
 
 ### Registering an application
+
+**Anyone can. There is nobody to ask.**
+
+```bash
+curl -X POST https://auth.opsidious.com/register   -H 'Content-Type: application/json'   -d '{"client_name":"My application","redirect_uris":["https://myapp.example/auth/callback"]}'
+```
+
+```json
+{
+  "client_id": "FmUHHN6Rh6M947ksbyFqXQ",
+  "client_secret": "XZnmbyb4ulzY7-fm6yta_uPBhx6OPsjUe4Gf7c-TAo0",
+  "client_secret_expires_at": 0,
+  "token_endpoint_auth_method": "client_secret_post",
+  "subject_type": "pairwise"
+}
+```
+
+That is the whole of it. No account, no email, no approval, no operator — the
+endpoint is [RFC 7591](https://www.rfc-editor.org/rfc/rfc7591) and it takes no
+authentication. It is advertised as `registration_endpoint` in the discovery
+document, so a standard client library finds it without being told.
+
+A desktop, mobile or single-page application cannot hold a secret, so it
+registers as a **public client** and proves itself with PKCE instead:
+
+```bash
+curl -X POST https://auth.opsidious.com/register   -H 'Content-Type: application/json'   -d '{"client_name":"My desktop app",
+       "token_endpoint_auth_method":"none",
+       "redirect_uris":["http://127.0.0.1:47821/callback"]}'
+```
+
+#### Why this can be open
+
+Because a client that registers gains nothing worth having. The subject it
+receives for a person is derived from that person's salt **and its own
+`client_id`**, so it is meaningless in every other application — including the
+other applications the same author might also register. There is no shared
+identifier to accumulate, which is what makes accumulating them pointless
+rather than merely forbidden.
+
+Everything else follows from that one sentence:
+
+- **The `client_id` is not yours to choose.** It is random. An id that looks
+  like somebody else's is the one part of this exchange that could mislead a
+  human reading a URL.
+- **`client_name` is never displayed to anyone.** It exists for a log line. A
+  name an unauthenticated caller picked, shown next to a trust decision, is a
+  phishing surface — so the sign-in screen says nothing at all about the
+  application, and `test/register.test.js` pins that.
+- **Redirect URIs are `https`, loopback `http` on `127.0.0.1`/`[::1]`, or a
+  reverse-DNS private-use scheme** (RFC 8252 §7.1). `localhost` is refused, and
+  the error says why: a name is resolved, and a resolver an attacker influences
+  turns a native application's redirect into someone else's.
+- **There is no client management.** No `registration_access_token`, no RFC
+  7592, no way to edit or delete a client. Managing one would mean holding
+  something that identifies its owner, and this service holds nothing about
+  anybody — developers included. If your redirect URI changes, register again.
+- **Nothing about the caller is recorded.** Not an IP, not a User-Agent, not a
+  timestamp finer than the row's own `created_at`.
+
+Registration is rate limited per address (`REGISTER_RATE_LIMIT_MAX`, ten an
+hour by default) because it is the only unauthenticated endpoint that writes a
+durable row. A deployment that wants a closed instance sets
+`REGISTRATION_ENABLED=false`; the discovery document then omits the endpoint
+rather than advertising one that answers 403.
+
+#### The operator's script
+
+Still there, for a closed instance or for seeding a client with a chosen id:
 
 ```bash
 npm run register-client -- defnote "Defnote" https://defnote.example/auth/callback
@@ -449,9 +528,9 @@ not start; it crash-loops with `PUBLIC_URL must be set`.
 **`/healthz` is a liveness probe and only a liveness probe.** It does no
 I/O of any kind — no database, no network — so it answers "the process is
 alive" and says nothing whatever about whether the database is healthy. A
-database that is broken *at boot* never reaches this check at all: the
+database that is broken _at boot_ never reaches this check at all: the
 process logs a fatal error and exits 1, and the restart policy takes over. A
-database that wedges *after* boot is a real gap this check does not close —
+database that wedges _after_ boot is a real gap this check does not close —
 every route would 500 while the container went on reporting healthy — and
 closing it would mean a database round trip on every probe forever, which
 was judged the worse trade. The comment beside the `HEALTHCHECK` explains
@@ -494,7 +573,7 @@ password" for an account whose salt is gone.
   error level so it is visible in ordinary log monitoring.
 - **`BACKUP_DIR` must be a host bind mount, not a Docker volume.** A
   `docker volume rm` — run to clean up, or by an unrelated `docker system
-  prune`, or by whoever tears down the stack — can take a named volume with
+prune`, or by whoever tears down the stack — can take a named volume with
   it. A host directory survives every one of those.
 
 **A restore is:** stop the container, replace the file at `DB_PATH` with one
@@ -528,3 +607,83 @@ held data permanently unreachable rather than erased.
 ## Licence
 
 MIT.
+
+## Language
+
+The service speaks **English and French**, and picks between them in this
+order — the order is the design, not an accident:
+
+| #   | Source                            | Why it wins where it does                                          |
+| --- | --------------------------------- | ------------------------------------------------------------------ |
+| 1   | `__Host-opsid_lang` cookie        | A choice the person made **on this service**.                      |
+| 2   | `ui_locales` (OIDC Core §3.1.2.1) | The application's hint about the language its own interface is in. |
+| 3   | `Accept-Language`                 | The browser's standing preference.                                 |
+| 4   | `DEFAULT_LOCALE`                  | A robot, or a bare `curl`.                                         |
+
+**The human beats the application, deliberately.** An application knows what
+language _it_ is in; only the person knows what language _they_ read. Someone
+who clicked "Français" here once is not handed an English sign-in screen
+because the application that sent them happens to be English.
+
+`ui_locales` used to be listed in `routes/authorize.js` among the parameters
+"deliberately NOT rejected" — accepted and ignored, which the spec permits. But
+a parameter that is accepted and ignored is indistinguishable from one that is
+honoured until somebody checks. It is honoured now, so
+`ui_locales_supported` appears in the discovery document, and
+`test/wellknown-discovery.test.js` pins the two lists to each other.
+
+### Sending it from an application
+
+```js
+const auth = opsidiousAuth({
+  issuer: 'https://auth.opsidious.com',
+  clientId,
+  clientSecret,
+  redirectUri,
+
+  // A string, an array, or a function of the request — the third because an
+  // application whose language is per-request has no single answer to give at
+  // startup.
+  uiLocales: (req) => req.locale
+});
+```
+
+The sign-in screen then speaks the language of the application the person came
+from, with nothing configured on either side.
+
+### The button translates itself
+
+The button's **label** belongs to the application: it is the text of the link,
+written in the application's own language. The **mention** underneath belongs to
+`button.css`, and it follows `:lang()` — so a page that declares
+`<html lang="fr">` gets it in French with nothing configured, and an
+application that switches language switches the button with it.
+
+```css
+/* the escape hatch, for a language this stylesheet does not carry */
+.opsid-signin {
+  --opsid-mention: 'Anónimo · vía Google';
+}
+```
+
+### The language survives the detour through Google
+
+`/authorize` parks the negotiated language on the `auth_requests` row, and
+`/callback/google` replays it. Without that, a French sign-in started by an
+English browser would come back in English halfway through — the browser's
+`Accept-Language` disagreeing with the `ui_locales` the application asked for,
+and the application asked first.
+
+### Adding a language
+
+1. Copy `locales/en.js` to `locales/xx.js` and translate it.
+2. Import it in `lib/i18n.js`'s `CATALOGUES`.
+3. Add the mention to `client/button.css` as a `:lang(xx)` rule.
+4. `npm test`.
+
+`test/i18n.test.js` will name every key you missed, every placeholder you
+dropped, and every string you translated that no longer reaches a page — that
+last one by rendering every page of the service, in every language, and looking
+for each string in the output. A half-translated identity service is worse than
+a monolingual one: the pages a person reads before deciding to trust something
+are exactly the pages that must not be half in a language they do not speak.

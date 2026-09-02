@@ -75,9 +75,7 @@ test('the response carries an access token, and it grants nothing', async () => 
   const second = await exchange({ code: await freshCode() });
   assert.notEqual(second.body.access_token, res.body.access_token);
 
-  const asBearer = await request(app)
-    .get('/account')
-    .set('Authorization', `Bearer ${res.body.access_token}`);
+  const asBearer = await request(app).get('/account').set('Authorization', `Bearer ${res.body.access_token}`);
   assert.notEqual(asBearer.status, 200, 'the access token must not authenticate anything');
 
   // refresh_token is optional, so it stays absent: there is no long-lived

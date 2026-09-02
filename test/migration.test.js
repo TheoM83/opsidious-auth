@@ -22,8 +22,7 @@ before(async () => {
   file = join(dir, 'ancienne.db');
 
   const db = new sqlite3.Database(file);
-  const run = (sql, p = []) =>
-    new Promise((res, rej) => db.run(sql, p, (e) => (e ? rej(e) : res())));
+  const run = (sql, p = []) => new Promise((res, rej) => db.run(sql, p, (e) => (e ? rej(e) : res())));
 
   await run(`CREATE TABLE signing_keys (kid TEXT PRIMARY KEY, private_pem TEXT NOT NULL,
     public_jwk TEXT NOT NULL, created_at INTEGER NOT NULL, retires_at INTEGER NOT NULL,

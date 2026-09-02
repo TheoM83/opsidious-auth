@@ -1,64 +1,143 @@
-<article class="ledger">
-  <header class="ledger-head">
-    <p class="eyebrow">Opsidious</p>
-    <h1>Une identité qui ne vous suit pas.</h1>
-    <p class="lede">
-      Vous vous connectez avec Google. Nous ne recevons ni votre e-mail, ni votre nom —
-      seulement un identifiant opaque, que nous ne conservons pas non plus.
-    </p>
-  </header>
+<%# La page d'accueil du service. Elle a un seul travail : rendre vérifiable une
+    affirmation que tout le monde fait. « Anonyme » ne vaut rien — ce qui vaut,
+    c'est de MONTRER le mécanisme, partie par partie, puis de dire où aller le
+    vérifier soi-même.
 
-  <section aria-labelledby="how-title">
-    <h2 class="eyebrow" id="how-title">Comment ça marche</h2>
-    <ol class="steps">
-      <li>
-        <h3>Chaque application vous voit différemment</h3>
-        <p>
-          La même personne reçoit un identifiant différent et stable dans chaque
-          application. Deux d’entre elles qui compareraient leurs bases n’y trouveraient
-          rien de commun.
-        </p>
-      </li>
-      <li>
-        <h3>Nous ne savons pas où vous allez</h3>
-        <p>
-          Cet identifiant est calculé au moment où vous vous connectez, puis oublié.
-          Aucune table ici ne relie votre compte à une application.
-        </p>
-      </li>
-      <li>
-        <h3>La deuxième connexion est immédiate</h3>
-        <p>
-          Une fois connecté à Opsidious, entrer dans une autre application ne demande
-          ni clic ni page d’attente, et ne repasse pas par Google.
-        </p>
-      </li>
-    </ol>
-  </section>
+    Le motif est celui de la marque : un hexagone traversé par une barre. La
+    barre est la coupure, et elle ne paraît qu'à trois endroits — dans
+    l'emblème, comme fil de la chaîne, et comme axe de la dérivation. %>
 
-  <section class="cannot-wrap">
-    <p class="cannot">
-      <strong>Vérifiez plutôt que de nous croire.</strong>
-      Votre page de compte affiche les six champs enregistrés sur vous, ce qu’est chacun,
-      et lequel apprend réellement quelque chose à qui lit cette base.
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow"><%= t('home.eyebrow') %></p>
+    <h1><%= t('home.h1') %></h1>
+    <p class="lede"><%= t('home.lede') %></p>
+    <p class="hero-cta">
+      <a class="btn" href="/account"><%= t('home.verifyCta') %></a>
+      <a class="btn btn--quiet" href="#developers"><%= t('home.devTitle') %></a>
     </p>
-    <a class="btn" href="/account">Voir mon compte</a>
-    <p class="foot-note">
-      Vous devez être connecté depuis une application Opsidious pour que cette page ait
-      quelque chose à afficher.
-    </p>
-  </section>
+  </div>
 
-  <section aria-labelledby="dev-title">
-    <h2 class="eyebrow" id="dev-title">Pour les développeurs</h2>
-    <p class="lede">
-      Le code de ce service est public, et son document de découverte se lit à
-      l’adresse habituelle.
-    </p>
+  <div class="hero-mark" aria-hidden="true">
+    <svg viewBox="0 0 290 290" class="glyph" role="presentation">
+      <polygon class="g-hex" points="145,50 223,95 223,185 145,230 67,185 67,95" />
+      <polygon class="g-hex-in" points="145,80 197,110 197,170 145,200 93,170 93,110" />
+      <rect class="g-bar-soft" x="52" y="132" width="186" height="16" />
+      <rect class="g-bar" x="52" y="138" width="186" height="4" />
+      <polygon class="g-tick" points="145,86 140,96 150,96" />
+      <polygon class="g-tick" points="145,194 140,184 150,184" />
+    </svg>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="chain-h">
+  <h2 class="band-h" id="chain-h"><%= t('home.chainTitle') %></h2>
+
+  <%# Chaque partie dit ce qu'elle voit ET ce qu'elle ne voit pas. La seconde
+      moitié est celle qui compte : c'est elle qui distingue ce service d'une
+      connexion Google ordinaire, donc c'est la seule à porter du vermillon. %>
+  <ol class="flow">
+    <% ['google', 'opsidious', 'application'].forEach(function (key) { %>
+      <li>
+        <span class="flow-who"><%= t('home.parties.' + key + '.who') %></span>
+        <span class="flow-line">
+          <span class="flow-label"><%= t('home.sees') %></span>
+          <span class="flow-sees"><%= t('home.parties.' + key + '.sees') %></span>
+        </span>
+        <span class="flow-line flow-line--blind">
+          <span class="flow-label"><%= t('home.blind') %></span>
+          <span class="flow-blind"><%= t('home.parties.' + key + '.blind') %></span>
+        </span>
+      </li>
+    <% }); %>
+  </ol>
+
+  <p class="band-note"><%= t('home.chainNote') %></p>
+</section>
+
+<section class="band" aria-labelledby="split-h">
+  <h2 class="band-h" id="split-h"><%= t('home.splitTitle') %></h2>
+
+  <div class="split">
+    <p class="split-body"><%= t('home.splitBody') %></p>
+
+    <figure class="figure">
+      <%# Le schéma ne descend pas sous 560px : la boîte défile. Sans tabindex,
+          ce défilement n'existe qu'à la souris, et le clavier seul ne voit
+          jamais la moitié droite. %>
+      <div class="figure-scroll" tabindex="0" role="group" aria-label="<%= t('home.splitDiaTitle') %>">
+        <svg viewBox="0 0 640 220" class="dia" role="img" aria-labelledby="split-t split-d">
+          <title id="split-t"><%= t('home.splitDiaTitle') %></title>
+          <desc id="split-d"><%= t('home.splitDiaDesc') %></desc>
+
+          <text class="d-lab" x="10" y="104"><%= t('home.splitDiaSource') %></text>
+          <circle class="d-node" cx="17" cy="122" r="4" />
+          <path class="d-wire" d="M17 122 H 232" />
+
+          <text class="d-cut" x="228" y="24"><%= t('home.splitDiaCut') %></text>
+          <rect class="d-bar" x="230" y="34" width="3" height="170" />
+
+          <path class="d-wire" d="M233 122 L 300 56 M233 122 H 300 M233 122 L 300 176" />
+
+          <% [0, 1, 2].forEach(function (i) { %>
+            <g class="d-out">
+              <rect x="300" y="<%= 36 + i * 60 %>" width="300" height="40" rx="2" />
+              <text class="d-app" x="316" y="<%= 55 + i * 60 %>"><%= t('home.splitDiaApp', { n: i + 1 }) %></text>
+              <text class="d-val" x="316" y="<%= 70 + i * 60 %>">sub  <%= ['7f3c…a01d', '2b90…c47e', 'e148…5b22'][i] %></text>
+            </g>
+          <% }); %>
+
+          <path class="d-brace" d="M614 44 H 626 V 196 H 614" />
+        </svg>
+      </div>
+      <figcaption><%= t('home.splitDiaClaim') %></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="verify-h">
+  <h2 class="band-h" id="verify-h"><%= t('home.verifyTitle') %></h2>
+  <div class="verify">
+    <p><%= t('home.verifyBody') %></p>
+    <a class="btn" href="/account"><%= t('home.verifyCta') %></a>
+    <p class="band-note"><%= t('home.verifyNote') %></p>
+  </div>
+</section>
+
+<section class="band" id="developers" aria-labelledby="dev-h">
+  <h2 class="band-h" id="dev-h"><%= t('home.devTitle') %></h2>
+  <p class="band-lede"><%= t('home.devLede') %></p>
+
+  <% if (registrationOpen) { %>
+    <div class="open">
+      <h3 class="open-h"><%= t('home.openTitle') %></h3>
+      <p class="open-body"><%= t('home.openBody') %></p>
+
+      <p class="code-cap"><%= t('home.openCurl') %></p>
+      <%# Même raison que le schéma : la commande dépasse en largeur, donc elle
+          défile, donc elle doit pouvoir prendre le focus. %>
+<pre class="code" tabindex="0" role="group" aria-label="<%= t('home.openCurl') %>"><code>curl -X POST <%= publicUrl %>/register \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "client_name": "My application",
+    "redirect_uris": ["https://myapp.example/auth/callback"]
+  }'</code></pre>
+      <p class="band-note"><%= t('home.openReturns', { method: '"token_endpoint_auth_method": "none"' }) %></p>
+    </div>
+  <% } %>
+
+  <div class="discovery">
+    <h3 class="sub-h"><%= t('home.discoveryTitle') %></h3>
     <ul class="links">
       <li><a href="/.well-known/openid-configuration"><code>/.well-known/openid-configuration</code></a></li>
       <li><a href="/.well-known/jwks.json"><code>/.well-known/jwks.json</code></a></li>
-      <li><a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer">github.com/TheoM83/opsidious-auth</a></li>
+      <li>
+        <a href="https://github.com/TheoM83/opsidious-auth/blob/main/docs/design.md" rel="noreferrer"
+          ><%= t('home.docsLink') %></a
+        >
+      </li>
     </ul>
-  </section>
-</article>
+  </div>
+
+  <p class="band-note foot-note"><%= t('home.footerNote') %></p>
+</section>

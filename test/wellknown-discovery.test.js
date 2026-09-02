@@ -54,7 +54,17 @@ test('it promises no capability this service lacks', async () => {
   // Deliberate absences (spec section 1). Advertising any of these would make a
   // standard client attempt a flow this server does not implement.
   assert.equal(body.userinfo_endpoint, undefined, 'there is no userinfo endpoint');
-  assert.equal(body.registration_endpoint, undefined, 'dynamic registration is a non-goal');
+  // `registration_endpoint` used to be asserted absent here, with the note
+  // "dynamic registration is a non-goal". It stopped being a non-goal: an
+  // identity service whose subjects are pairwise has nothing to protect by
+  // gate-keeping registration, because a client that registers gains a value
+  // that is worthless everywhere else. The endpoint exists, so it is
+  // advertised - see routes/register.js.
+  assert.equal(
+    body.registration_endpoint,
+    `${PUBLIC_URL}/register`,
+    'registration is open, so it must be discoverable'
+  );
   assert.ok(!(body.grant_types_supported || []).includes('refresh_token'));
   assert.deepEqual(body.response_types_supported, ['code']);
   assert.deepEqual(body.id_token_signing_alg_values_supported, ['RS256']);

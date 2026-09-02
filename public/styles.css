@@ -1,646 +1,1046 @@
-/* Palette tirée du logo, pas inventée à côté de lui.
-   #EF4444 vermillon, #F5F5F7 texte, #18181B surface, #0D0D10 fond : ce sont les
-   valeurs exactes des SVG de la marque.
+/* ═══════════════════════════════════════════════════════════════════════════
+   Opsidious Auth
+   ═══════════════════════════════════════════════════════════════════════════
+   The same design language as opsidious.com, and deliberately NOT the same
+   typefaces.
 
-   Le vermillon n'est JAMAIS un aplat. Mesuré : du blanc dessus donne 3,76 de
-   contraste, sous le seuil AA de 4,5 — un bouton plein serait soit illisible,
-   soit à texte noir, ce qui est laid. Il sert donc à l'emblème et aux repères,
-   là où sa saturation porte l'identité sans avoir à être lue. Les contrôles
-   sont des surfaces neutres à filet, comme les boutons de connexion qui font
-   premium : c'est aussi ce qui évite le « noir + un accent criard » qu'on voit
-   partout. */
+   The site loads IBM Plex from Google Fonts. This service does not, and cannot:
+   its content security policy allows no external origin of any kind, and an
+   identity service whose whole argument is "nothing third-party runs here" has
+   already lost that argument the moment it fetches a font from somebody else.
+   So the pairing is echoed with system stacks — a monospace voice for anything
+   structural, the system UI face for prose. The identity is carried by the
+   SHAPES, which is where it should live anyway.
+
+   ONE MOTIF: the bar that crosses the hexagon in the mark. It is the cut. It
+   appears three times and nowhere else — drawing across the emblem in the hero,
+   as the thread the three parties sit on, and as the axis of the derivation
+   diagram.
+
+   ONE COLOUR: vermillon, for that bar and for the things a reader is asked to
+   check rather than believe — what each party CANNOT see, and the one field
+   that discloses something.
+
+   TWO SURFACES: the page is flat. Nothing is raised off it. The only relief is
+   negative: what does not exist is cut INTO the ground, because a card floating
+   above the page would be the opposite claim.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg: #0d0d10;
-  --surface: #18181b;
-  --line: #26262b;
-  --text: #f5f5f7;
-  --muted: #a1a1aa; /* 7,57 sur le fond */
+  --bg: #0b0b0e;
+  --sunk: #070709;
+  --surface: #131316;
+  --line: #1e1e23;
+  --line-2: #2c2c33;
+  --text: #f4f4f6;
+  --muted: #9b9ba4;
+  --note: #7e7e8a;
+  /* There is no `--faint`. It existed for text a shade below `--note`,
+     measured 2.1:1 on this ground, and every one of its five callers was
+     prose. They moved to `--muted`; the token went with them rather than
+     staying declared as an invitation to make that mistake again. A
+     hairline that needs a colour uses `--line`. */
   --brand: #ef4444;
-  --danger: #ef4444;
+  --shadow: #000;
+  /* Drawn on top of --text, which is the one light surface the service has. */
+  --on-light: #18181b;
 
-  /* La géométrie du logo — hexagone facetté, barre, repères triangulaires —
-     tient d'un instrument de mesure. D'où les filets d'un pixel et les
-     graduations plutôt que des ombres et des dégradés. */
-  --radius: 12px;
-  --tap: 44px;
-  --mono:
-    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  --measure: 36rem;
+  --wide: 62rem;
+  --pad: clamp(20px, 5vw, 56px);
+  --gutter: max(var(--pad), calc((100% - var(--wide)) / 2));
 }
-* {
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
   background: var(--bg);
   color: var(--text);
-  font:
-    16px/1.6 system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-}
-main {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-footer {
-  padding: 20px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-}
-h1,
-h2 {
-  font-family: Georgia, 'Times New Roman', serif;
-  margin: 0 0 10px;
-}
-.panel {
-  width: 100%;
-  max-width: 420px;
-  padding: 28px;
-  background: var(--surface);
-  border-radius: 16px;
-  text-align: center;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 11px 20px;
-  border: 0;
-  border-radius: 16px;
-  background: var(--brand);
-  /* Texte SOMBRE, jamais clair : 5,16 de contraste contre 3,46. */
-  color: var(--bg);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-}
-.btn.danger {
-  background: transparent;
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-.muted {
-  color: var(--muted);
-  font-size: 14px;
-}
-input {
-  width: 100%;
-  min-height: 44px;
-  padding: 12px 14px;
+  font-family: var(--sans);
   font-size: 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: inherit;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Page de transparence ────────────────────────────────────────────────────
-   Une règle typographique porte toute la page : ce que le service DIT est en
-   serif ou en sans, ce qu'il STOCKE est en monospace. Le contraste entre les
-   deux est le système, pas une décoration.
-
-   Aucune police externe, délibérément : une page dont le sujet est la
-   confidentialité ne peut pas faire une requête à un tiers pour s'afficher.  */
-
-.ledger {
-  width: 100%;
-  max-width: 640px;
-  text-align: left;
+a {
+  color: inherit;
 }
 
-.ledger-head {
-  margin-bottom: 40px;
-}
-.ledger h1 {
-  font-size: clamp(28px, 7vw, 40px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-}
-.lede {
-  margin: 0;
-  max-width: 46ch;
-  color: var(--muted);
-}
-
-/* Les intertitres sont en monospace tracké : ce sont des étiquettes de
-   registre, pas des titres de magazine. */
-.eyebrow {
+code {
   font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 14px;
-}
-
-/* ── La ligne ─────────────────────────────────────────────────────────────── */
-
-.fields {
-  list-style: none;
-  margin: 0 0 44px;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
-.field {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--line);
-}
-.field-name {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text);
-}
-.field-shape {
-  margin: 9px 0 12px;
-}
-.field-shape code {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text);
-  padding: 3px 9px;
-  background: var(--bg);
-  border-radius: 6px;
-}
-
-.field-kind {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: var(--muted);
-}
-
-/* Le verdict est la colonne qui compte. Par défaut il est calme : la plupart
-   des champs n'apprennent rien, et une page qui crie « protégé ! » six fois
-   convainc moins qu'une page qui le constate. */
-.verdict {
-  margin: 0;
-  font-size: 14px;
-  color: var(--muted);
-}
-
-/* Le seul champ qui révèle quelque chose est le seul à porter la couleur.
-   C'est le pari de cette page : mettre en avant ce que le service SAIT plutôt
-   que ce qu'il ignore. Une page de transparence qui désigne sa propre faiblesse
-   est plus crédible qu'une page qui vante ses forces. */
-.field--reveals .verdict {
-  color: var(--text);
-}
-.verdict-mark {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 9px;
-  border-radius: 50%;
-  background: var(--brand);
-  vertical-align: middle;
-}
-
-/* ── Ce qui n'existe pas ──────────────────────────────────────────────────── */
-
-.absent {
-  margin-bottom: 44px;
-}
-.absent ul {
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-}
-.absent li {
-  padding: 9px 0 9px 22px;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
-  color: var(--muted);
-  position: relative;
-}
-/* Une barre plutôt qu'une puce : ces champs sont absents, pas énumérés. */
-.absent li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 18px;
-  width: 11px;
-  height: 1px;
-  background: var(--line);
-}
-.cannot {
-  margin: 0;
-  padding: 18px 20px;
+  font-size: 0.9em;
   background: var(--surface);
-  border-radius: 14px;
-  font-size: 14px;
-  color: var(--muted);
-}
-.cannot strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text);
-  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 2px;
 }
 
-/* ── Agir ─────────────────────────────────────────────────────────────────── */
-
-.act {
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
-}
-.act h3 {
-  margin: 0 0 6px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 17px;
-}
-.act p {
-  margin: 0 0 14px;
-  font-size: 14px;
-  color: var(--muted);
-}
-.act .warn {
-  color: var(--danger);
-}
-.act label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.act label code {
-  font-family: var(--mono);
-  color: var(--text);
-}
-.act input {
-  margin-bottom: 12px;
-  font-family: var(--mono);
-}
-.act .btn {
-  width: 100%;
-}
-.btn--danger {
-  background: transparent;
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-
-/* La page de transparence est un document : elle s'aligne en haut et à gauche,
-   là où le reste du service centre un panneau de 420px. */
-main:has(.ledger) {
-  place-items: start center;
-  padding: 40px 20px 64px;
-}
-
-:where(a, button, summary, input):focus-visible {
+/* The one sanctioned use of the accent outside the motif: a ring that has to
+   compete with the page for attention is a ring people stop noticing. */
+:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 3px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-/* ── Page d'accueil ─────────────────────────────────────────────────────────
-   Même grammaire que la page de transparence : intertitres monospace tracké,
-   texte en sans, et rien de décoratif. Les trois étapes sont numérotées parce
-   que l'ordre porte une information — c'est une séquence vécue, pas une liste
-   de qualités.                                                              */
-
-.steps {
-  list-style: none;
-  counter-reset: step;
-  margin: 0 0 44px;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
-.steps li {
-  counter-increment: step;
-  position: relative;
-  padding: 20px 0 20px 38px;
-  border-bottom: 1px solid var(--line);
-}
-.steps li::before {
-  content: counter(step);
+.skip {
   position: absolute;
-  left: 0;
-  top: 21px;
+  left: -9999px;
+  top: 0;
+  padding: 12px 18px;
+  background: var(--surface);
   font-family: var(--mono);
-  font-size: 12px;
-  color: var(--muted);
-}
-.steps h3 {
-  margin: 0 0 6px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 17px;
-  font-weight: 400;
-}
-.steps p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.cannot-wrap {
-  margin-bottom: 44px;
-}
-.cannot-wrap .btn {
-  width: 100%;
-  margin-top: 16px;
-}
-.foot-note {
-  margin: 10px 0 0;
   font-size: 13px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.links {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.links li {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
-}
-.links a {
-  color: var(--text);
   text-decoration: none;
 }
-.links a:hover {
-  text-decoration: underline;
-}
-.links code {
-  font-family: var(--mono);
-  font-size: 13px;
+.skip:focus {
+  left: 0;
+  z-index: 20;
 }
 
-/* ── Barre de marque ────────────────────────────────────────────────────────
-   Un filet, pas une ombre : le logo est un objet de mesure, la page emprunte
-   son vocabulaire.                                                          */
+/* ── Bar ─────────────────────────────────────────────────────────────── */
 
 .topbar {
   display: flex;
   align-items: center;
-  padding: 16px calc(20px + var(--safe-left, 0px)) 16px calc(20px + var(--safe-right, 0px));
+  padding: 16px var(--gutter);
   border-bottom: 1px solid var(--line);
 }
+
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--text);
   text-decoration: none;
-  /* Le mot-symbole du logo est en capitales très ouvertes (6/56). La barre
-     reprend ce rapport à petite taille pour que les deux se reconnaissent. */
+  font-family: var(--mono);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .brand img {
   display: block;
 }
 
-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px calc(20px + var(--safe-left, 0px)) calc(20px + var(--safe-bottom, 0px));
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 12px;
-  text-align: left;
-  letter-spacing: 0.06em;
-}
-footer a {
-  color: var(--muted);
-}
+/* ── Hero ────────────────────────────────────────────────────────────── */
 
-/* Le trait de l'emblème traverse son hexagone ; les séparations de la page en
-   reprennent l'idée — une graduation vermillon à gauche du filet. */
-.eyebrow {
-  position: relative;
-  padding-left: 16px;
-}
-.eyebrow::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 8px;
-  height: 1px;
-  background: var(--brand);
-}
-
-/* ── Écran d'introduction ───────────────────────────────────────────────────
-   Affiché une seule fois par navigateur, au moment où quelqu'un décide de
-   faire confiance. Court et centré : c'est un point de passage, pas une page
-   à lire.                                                                   */
-
-.intro {
-  width: 100%;
-  max-width: 436px;
-  margin: auto;
-  text-align: left;
-}
-.intro-card {
-  padding: 30px 30px 24px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 22px;
-}
-
-.intro-head {
-  display: flex;
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 64px);
   align-items: center;
-  gap: 14px;
-  margin-bottom: 26px;
-}
-.intro-mark {
-  flex: 0 0 auto;
-  display: block;
-}
-.intro h1 {
-  margin: 0 0 3px;
-  font-size: 21px;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-.intro-sub {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
+  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
+  margin-inline: var(--gutter) auto;
+  padding-block: clamp(48px, 9vw, 96px);
 }
 
-/* ── Le trajet ──────────────────────────────────────────────────────────────
-   Le logo est un hexagone TRAVERSÉ par une barre. Cette liste est le même
-   geste : un fil vermillon relie les trois parties, chacune est un point
-   dessus. Le motif vient de la marque plutôt que d'un catalogue.            */
+@media (min-width: 860px) {
+  .hero {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  }
+}
+
+.eyebrow {
+  margin: 0 0 22px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--note);
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(27px, 4.4vw, 42px);
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lede {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: clamp(15.5px, 1.7vw, 17.5px);
+  color: var(--muted);
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 30px 0 0;
+}
+
+.hero-mark {
+  justify-self: center;
+  width: min(100%, 250px);
+}
+.glyph {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.g-hex {
+  fill: none;
+  stroke: color-mix(in srgb, var(--brand) 62%, transparent);
+  stroke-width: 1.4;
+}
+.g-hex-in {
+  fill: var(--bg);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.g-bar-soft {
+  fill: var(--brand);
+  opacity: 0.24;
+}
+.g-bar,
+.g-tick {
+  fill: var(--brand);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-block;
+  padding: 11px 20px;
+  border: 1px solid var(--line-2);
+  background: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+.btn:hover {
+  border-color: var(--muted);
+  background: var(--surface);
+}
+
+.btn--quiet {
+  border-color: transparent;
+  color: var(--muted);
+}
+.btn--quiet:hover {
+  color: var(--text);
+  border-color: var(--line-2);
+  background: none;
+}
+
+.btn--danger {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line-2));
+  color: var(--brand);
+}
+.btn--danger:hover {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  border-color: var(--brand);
+}
+
+/* ── Bands ───────────────────────────────────────────────────────────── */
+
+.band {
+  border-top: 1px solid var(--line);
+  padding-bottom: clamp(44px, 7vw, 80px);
+  scroll-margin-top: 12px;
+}
+
+/* `:not(.band-h)`, not `*`: at one class this guard lost to any child rule that
+   wrote a `margin` shorthand, which silently dropped the gutter and put that
+   child against the left edge of the viewport. Naming the exception here also
+   spares the heading from having to undo the guard afterwards. */
+.band > :not(.band-h) {
+  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
+  margin-inline: var(--gutter) auto;
+}
+
+.band-h {
+  margin: 0 0 clamp(28px, 4vw, 44px);
+  padding: 15px var(--gutter);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.band-lede {
+  margin-block: 0 clamp(28px, 4vw, 40px);
+  max-width: var(--measure);
+  font-size: clamp(15.5px, 1.6vw, 17px);
+  color: var(--muted);
+}
+
+.band-note {
+  margin-block: 20px 0;
+  max-width: var(--measure);
+  font-size: 14.5px;
+  color: var(--note);
+}
+
+.sub-h {
+  margin: 0 0 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--note);
+}
+
+/* ── The chain: three parties on one thread ──────────────────────────── */
+/* The mark is a hexagon crossed by a bar. A sign-in is a journey through
+   something, so it is drawn as one: a vermillon thread, and each party a point
+   on it. Borrowed from the brand rather than invented. */
 
 .flow {
-  position: relative;
   list-style: none;
-  margin: 0 0 24px;
-  padding: 0;
+  /* margin-block, not margin: the gutter comes from `.band > *`, and a blanket
+     `margin: 0` here dropped it - which put the thread's nodes at left:-26px of
+     the viewport, gave the page a horizontal overflow, and quietly shifted
+     every other section on it. */
+  margin-block: 0;
+  padding: 0 0 0 26px;
+  max-width: var(--measure);
+  position: relative;
 }
-/* Le fil. Il s'arrête au dernier point au lieu de filer dans le vide : le
-   trajet se termine à l'application, il ne continue pas. */
+
 .flow::before {
   content: '';
   position: absolute;
   left: 4px;
-  top: 8px;
-  bottom: 26px;
-  width: 1px;
-  background: linear-gradient(var(--brand), color-mix(in srgb, var(--brand) 25%, transparent));
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--brand) 70%, transparent) 12%,
+    color-mix(in srgb, var(--brand) 70%, transparent) 88%,
+    transparent
+  );
 }
+
 .flow li {
   position: relative;
-  display: grid;
-  gap: 2px;
-  padding: 0 0 20px 24px;
+  padding-bottom: 26px;
 }
 .flow li:last-child {
   padding-bottom: 0;
 }
-/* Le point sur le fil. Creux, cerclé de vermillon : un repère de mesure, pas
-   une puce. */
+
 .flow li::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 5px;
-  width: 9px;
-  height: 9px;
-  box-sizing: border-box;
-  border: 1.5px solid var(--brand);
-  border-radius: 50%;
-  background: var(--surface);
+  left: -26px;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  background: var(--bg);
+  border: 2px solid var(--brand);
+  transform: rotate(45deg);
 }
 
 .flow-who {
+  display: block;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.flow-line {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0 14px;
+  align-items: baseline;
+  padding: 5px 0;
+}
+
+.flow-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
 }
+
 .flow-sees {
-  font-size: 14px;
-  line-height: 1.4;
-}
-/* Ce que la partie NE voit pas. En retrait et en gris : c'est une absence, et
-   une absence ne doit pas peser plus lourd que ce qui existe — mais elle est
-   la moitié qui distingue ce service d'une connexion ordinaire, d'où le
-   caractère qui l'annonce. */
-.flow-blind {
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
 }
-.flow-blind::before {
-  content: '✕';
-  margin-right: 6px;
+.flow-blind {
   color: var(--brand);
-  font-size: 9px;
-  vertical-align: 1px;
+}
+.flow-line--blind .flow-label {
+  color: var(--brand);
+}
+
+/* The compact form, on the one screen where a decision is being made. */
+.flow--compact li {
+  padding-bottom: 18px;
+}
+.flow--compact .flow-who {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+/* A rem wider than the page version. « Ne peut pas voir » is the longest label
+   either language writes, and a label that wraps onto a second line stops
+   reading as a label and starts reading as more of the sentence. */
+.flow--compact .flow-line {
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: 0 12px;
+  padding: 3px 0;
+}
+.flow--compact .flow-sees,
+.flow--compact .flow-blind {
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+/* Last, so it also overrides the compact column above: below this width a label
+   column would leave the sentence beside it about three words wide, so the
+   label goes above the line it names instead. */
+@media (max-width: 560px) {
+  .flow-line,
+  .flow--compact .flow-line {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* ── The derivation diagram ──────────────────────────────────────────── */
+
+.split {
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
+}
+
+.split-body {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+
+.figure {
+  margin: 0;
+}
+
+.figure-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  padding: clamp(16px, 2.2vw, 26px);
+}
+
+.dia {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+
+.d-lab,
+.d-cut {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  fill: var(--text);
+}
+.d-cut {
+  fill: var(--brand);
+}
+.d-node {
+  fill: var(--text);
+}
+.d-wire {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.d-bar {
+  fill: var(--brand);
+}
+.d-out rect {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.d-app {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+.d-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--note);
+}
+.d-brace {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 1.2;
+}
+
+/* Grey, though it names the claim: the vermillon in this figure belongs to the
+   cut and the bar, and a caption in the same colour reads as part of them. */
+.figure figcaption {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Verify / open registration / discovery ──────────────────────────── */
+
+.verify p {
+  margin: 0 0 20px;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+
+/* Flat, not cut in: --sunk says "this does not exist", and this block is an
+   invitation to register something. */
+.open {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: clamp(24px, 3.5vw, 36px) clamp(20px, 3vw, 32px);
+  margin-bottom: clamp(28px, 4vw, 40px);
+}
+
+.open-h {
+  margin: 0 0 14px;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(17px, 2vw, 21px);
+  letter-spacing: -0.02em;
+}
+
+.open-body {
+  margin: 0 0 24px;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+
+.code-cap {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.code {
+  margin: 0;
+  padding: 18px 20px;
+  overflow-x: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--muted);
+  tab-size: 2;
+}
+.code code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.links li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+.links li:last-child {
+  border-bottom: none;
+}
+.links a {
+  text-decoration: none;
+  color: var(--muted);
+  transition: color 140ms ease;
+}
+.links a:hover {
+  color: var(--text);
+}
+.links code {
+  background: none;
+  padding: 0;
+}
+
+.foot-note {
+  margin-top: clamp(28px, 4vw, 40px);
+}
+
+/* ── The sign-in screen ──────────────────────────────────────────────── */
+
+.intro {
+  max-width: min(34rem, calc(100% - var(--pad) * 2));
+  margin: clamp(40px, 8vw, 88px) auto;
+  padding: 0 0 40px;
+}
+
+/* The only thing on the service called a card, and still flat on the page:
+   --sunk is reserved for absence, and nothing on this screen is absent. */
+.intro-card {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: clamp(24px, 4vw, 38px);
+}
+
+.intro-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.intro-mark {
+  flex: none;
+  margin-top: 2px;
+}
+.intro-head h1 {
+  margin: 0 0 4px;
+  font-size: clamp(20px, 3vw, 25px);
+}
+.intro-sub {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+/* The person is about to make a decision about Google, so the control says
+   Google in Google's own shape. Nothing here is loaded from Google — the mark
+   is a local SVG, like everything else on this origin. */
+.gbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+  padding: 14px 20px;
+  background: var(--text);
+  color: var(--on-light);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+.gbtn:hover {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 14%, transparent);
+}
+.gbtn:active {
+  transform: scale(0.995);
+}
+.gbtn__g {
+  display: block;
 }
 
 .intro-note {
-  margin: 13px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  text-align: center;
-}
-.intro-foot {
   margin: 16px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--note);
+}
+
+.intro-foot {
   display: flex;
-  gap: 9px;
+  flex-wrap: wrap;
   justify-content: center;
-  color: var(--line);
-  font-size: 12px;
+  gap: 10px;
+  margin: 24px 0 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--note);
 }
 .intro-foot a {
   color: var(--muted);
   text-decoration: none;
+  border-bottom: 1px solid var(--line-2);
+  padding-bottom: 1px;
 }
 .intro-foot a:hover {
   color: var(--text);
-  text-decoration: underline;
+  border-color: var(--muted);
 }
 
-/* ── Bouton « Continuer avec Google » ───────────────────────────────────────
-   Conforme aux règles de marque de Google, relevées à la source plutôt
-   qu'approximées : fond #131314, contour #8E918F d'un pixel à l'intérieur,
-   texte #E3E3E3 pour le thème sombre — 12px avant le logo, 10px après, 12px
-   après le texte.
+/* ── The account ledger ──────────────────────────────────────────────── */
 
-   Le « G » est le logo officiel en quatre couleurs, tel quel. La spécification
-   interdit de le recolorer, de le passer en monochrome, de l'utiliser seul
-   sans le bouton, et de le poser sur un fond autre que les trois prévus.
-   « Continuer avec Google » est une formulation autorisée, et la localisation
-   est encouragée.
-
-   Une déviation assumée : la spécification demande Google Sans Medium, qui
-   n'est pas distribuée en police web. La charger depuis un tiers sur la page
-   d'un service dont l'argument est la confidentialité serait une contradiction
-   plus coûteuse que l'écart typographique. Pile système, donc.               */
-
-.gbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  padding: 11px 12px;
-  box-sizing: border-box;
-
-  background: #131314;
-  color: #e3e3e3;
-  border: 1px solid #8e918f;
-  border-radius: 22px;
-
-  font:
-    500 14px/20px system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  letter-spacing: 0.15px;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+.ledger {
+  padding-bottom: clamp(44px, 7vw, 80px);
 }
-.gbtn:hover {
-  background: #1c1c1e;
-  border-color: #a5a8a6;
+
+.ledger-head {
+  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
+  margin-inline: var(--gutter) auto;
+  padding-block: clamp(40px, 7vw, 72px) clamp(28px, 4vw, 44px);
 }
-.gbtn:active {
-  background: #232326;
+.ledger-head h1 {
+  margin: 0 0 18px;
 }
-.gbtn:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 3px;
+.ledger-head .lede {
+  max-width: var(--measure);
 }
-.gbtn__g {
+
+.ledger section > *:not(.band-h) {
+  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
+  margin-inline: var(--gutter) auto;
+}
+
+/* The hairlines are borders on the fields, not a 1px `gap` over a --line
+   ground. The gap trick shows that ground through anything the fields do not
+   cover, so an odd number of them paints the empty last cell as a solid block.
+   describeRow returns six today, which is the only reason nobody has seen it. */
+.fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  background: var(--bg);
+  border-block: 1px solid var(--line);
+}
+
+.field {
+  padding: clamp(18px, 2.4vw, 26px);
+  border-top: 1px solid var(--line);
+}
+.field:first-child {
+  border-top: none;
+}
+
+@media (min-width: 800px) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Two per row, so the first row is two fields wide and the seam moves. */
+  .field:nth-child(2) {
+    border-top: none;
+  }
+  .field:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+}
+
+.field-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.field-shape {
+  margin: 8px 0 12px;
+  font-size: 12px;
+}
+.field-shape code {
+  background: none;
+  padding: 0;
+  color: var(--note);
+}
+
+.field-kind {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+.verdict {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* The one field that discloses something says so out loud, instead of being
+   buried among the reassuring ones. */
+.field--reveals .verdict {
+  color: var(--brand);
+}
+.verdict-mark {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  background: var(--brand);
+  transform: rotate(45deg);
+  vertical-align: 1px;
+}
+
+/* Cut INTO the page: this section is about what does not exist. */
+.absent {
+  margin-top: clamp(36px, 5vw, 56px);
+}
+.absent ul {
+  margin: 0;
+  padding: clamp(20px, 3vw, 28px) clamp(20px, 3vw, 28px) clamp(20px, 3vw, 28px) clamp(38px, 4vw, 48px);
+  background: var(--sunk);
+  border-left: 2px solid var(--brand);
+  color: var(--muted);
+  box-shadow: inset 0 1px 0 var(--shadow);
+}
+.absent li {
+  padding: 4px 0;
+}
+.absent li::marker {
+  color: var(--brand);
+  content: '\2212  ';
+}
+
+.cannot {
+  margin: 22px 0 0;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+.cannot strong {
   display: block;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.acts {
+  margin-top: clamp(36px, 5vw, 56px);
+}
+
+.act {
+  display: grid;
+  gap: 16px;
+  padding: clamp(20px, 3vw, 28px) 0;
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+}
+.act:last-child {
+  border-bottom: none;
+}
+
+/* Below 760px the grid collapses to one column, and a stretched button is a
+   different control from the same button sitting beside its text above that
+   width. Sign out and Delete are the two acts here; they behave alike. */
+.act button {
+  justify-self: start;
+}
+
+@media (min-width: 760px) {
+  .act {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .act--danger {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.act-text h3 {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.act-text p {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: 14.5px;
+  color: var(--muted);
+}
+.act-text .warn {
+  margin-top: 12px;
+  padding-left: 14px;
+  border-left: 2px solid color-mix(in srgb, var(--brand) 45%, var(--line));
+  color: var(--note);
+}
+
+.act--danger label {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.act--danger input {
+  display: block;
+  width: min(100%, 18rem);
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--sunk);
+  border: 1px solid var(--line-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.act--danger input:focus-visible {
+  border-color: var(--brand);
+}
+
+/* ── Error ───────────────────────────────────────────────────────────── */
+
+.panel--error {
+  max-width: min(34rem, calc(100% - var(--pad) * 2));
+  margin: clamp(56px, 12vw, 120px) auto;
+  padding: clamp(28px, 4vw, 40px);
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  border-left: 2px solid var(--brand);
+}
+.err-code {
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--brand);
+}
+.panel--error h1 {
+  margin: 0 0 18px;
+  font-size: clamp(19px, 2.6vw, 24px);
+  line-height: 1.35;
+}
+.err-back {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.err-back a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-2);
+}
+.err-back a:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  justify-content: space-between;
+  padding: 22px var(--gutter) 44px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+footer a {
+  color: var(--note);
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+footer a:hover {
+  color: var(--text);
+}
+
+.langs {
+  display: flex;
+  gap: 16px;
+}
+
+/* A language is not a country, so there is no flag here — each language is
+   written in itself, which is the only label someone looking for it recognises. */
+.lang--current {
+  color: var(--text);
+}
+.lang--current::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 8px;
+  background: var(--muted);
+  transform: rotate(45deg);
+  vertical-align: 1px;
+}
+
+/* ── Motion: one load sequence. Nothing loops. ───────────────────────── */
+
+.g-hex {
+  stroke-dasharray: 560;
+  stroke-dashoffset: 560;
+  animation: draw 1000ms cubic-bezier(0.6, 0, 0.2, 1) 120ms forwards;
+}
+.g-hex-in,
+.g-tick {
+  opacity: 0;
+  animation: fade 600ms ease 820ms forwards;
+}
+.g-bar,
+.g-bar-soft {
+  transform: scaleX(0);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: cut 700ms cubic-bezier(0.65, 0, 0.2, 1) 700ms forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cut {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .g-hex {
+    stroke-dashoffset: 0;
+  }
+  .g-hex-in,
+  .g-tick {
+    opacity: 1;
+  }
+  .g-bar,
+  .g-bar-soft {
+    transform: none;
+  }
 }

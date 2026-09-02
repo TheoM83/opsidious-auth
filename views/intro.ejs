@@ -1,52 +1,58 @@
+<%# Le seul écran de tout le flux, et il ne s'affiche qu'une fois par
+    navigateur. §6 disait « aucune page intermédiaire, direct chez Google » ;
+    cette décision supposait que les gens sachent ce qu'est Opsidious. Ils ne le
+    savent pas, et le seul moment où quelqu'un a envie de le lire est celui où
+    il décide de faire confiance.
+
+    Rien ici ne poste, ne lit ni n'exécute : un lien, et une explication. %>
+
 <article class="intro">
   <div class="intro-card">
     <header class="intro-head">
-      <img class="intro-mark" src="/emblem-mark.svg" alt="" width="32" height="32" />
+      <img class="intro-mark" src="/emblem-mark.svg" alt="" width="30" height="30" />
       <div>
-        <h1>Connexion anonyme</h1>
-        <p class="intro-sub">Opsidious se place entre Google et l’application.</p>
+        <h1><%= t('intro.h1') %></h1>
+        <p class="intro-sub"><%= t('intro.sub') %></p>
       </div>
     </header>
 
-    <%# Le logo est un hexagone TRAVERSÉ par une barre. La chaîne est
-        exactement ça — un trajet à travers quelque chose — donc elle est
-        dessinée comme telle : un fil vermillon relie les trois parties, et
-        chacune est un point dessus. Le motif vient de la marque, pas d'un
-        catalogue de composants.
-
-        Chaque partie dit ce qu'elle voit ET ce qu'elle ne voit pas. La
-        seconde moitié est celle qui compte : c'est elle qui distingue ce
-        service d'une connexion Google ordinaire. « Anonyme » ne vaut rien —
-        tous les services l'emploient ; ceci se vérifie. %>
-    <ol class="flow">
-      <li>
-        <span class="flow-who">Google</span>
-        <span class="flow-sees">Vous vous connectez à Opsidious.</span>
-        <span class="flow-blind">Ignore à quelle application.</span>
-      </li>
-      <li>
-        <span class="flow-who">Opsidious</span>
-        <span class="flow-sees">Un identifiant Google opaque.</span>
-        <span class="flow-blind">Ni e-mail, ni nom, jamais reçus.</span>
-      </li>
-      <li>
-        <span class="flow-who">L’application</span>
-        <span class="flow-sees">Un identifiant qui n’a cours que chez elle.</span>
-        <span class="flow-blind">Inutilisable pour vous suivre ailleurs.</span>
-      </li>
+    <%# Le logo est un hexagone traversé par une barre. La chaîne est exactement
+        ça — un trajet à travers quelque chose — donc elle est dessinée comme
+        telle : un fil vermillon relie les trois parties, et chacune est un
+        point dessus. Le motif vient de la marque, pas d'un catalogue de
+        composants. %>
+    <%# Les deux lignes disent des choses opposées, et sans étiquette la seule
+        chose qui les distingue est le rouge contre le gris — invisible pour
+        qui ne distingue pas les deux, et pour qui lit à voix haute. Ce qui est
+        vu et ce qui ne l'est pas se dit ici en toutes lettres, comme sur
+        l'accueil. %>
+    <ol class="flow flow--compact">
+      <% ['google', 'opsidious', 'application'].forEach(function (key) { %>
+        <li>
+          <span class="flow-who"><%= t('home.parties.' + key + '.who') %></span>
+          <span class="flow-line">
+            <span class="flow-label"><%= t('home.sees') %></span>
+            <span class="flow-sees"><%= t('home.parties.' + key + '.sees') %></span>
+          </span>
+          <span class="flow-line flow-line--blind">
+            <span class="flow-label"><%= t('home.blind') %></span>
+            <span class="flow-blind"><%= t('home.parties.' + key + '.blind') %></span>
+          </span>
+        </li>
+      <% }); %>
     </ol>
 
     <a class="gbtn" href="<%= vers %>">
       <img class="gbtn__g" src="/google-g.svg" alt="" width="18" height="18" />
-      Continuer avec Google
+      <%= t('intro.button') %>
     </a>
 
-    <p class="intro-note">Une seule fois. Vos prochaines connexions seront immédiates.</p>
+    <p class="intro-note"><%= t('intro.note') %></p>
   </div>
 
   <p class="intro-foot">
-    <a href="/account">Ce qui est enregistré sur moi</a>
+    <a href="/account"><%= t('intro.footAccount') %></a>
     <span aria-hidden="true">·</span>
-    <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer">Code source</a>
+    <a href="https://github.com/TheoM83/opsidious-auth" rel="noreferrer"><%= t('common.source') %></a>
   </p>
 </article>

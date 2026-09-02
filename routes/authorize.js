@@ -7,26 +7,27 @@ import { issueCode } from '../lib/codes.js';
 import { pairwiseSubject, randomToken, isValidCodeChallenge } from '../lib/crypto.js';
 import { authorizeUrl } from '../lib/google.js';
 import { renderError } from '../lib/middleware.js';
-import { join } from 'node:path';
+import { renderPage } from '../lib/render.js';
 import { AUTH_REQUEST_TTL_MS, SSO_COOKIE_NAME, SEEN_COOKIE_NAME } from '../lib/config.js';
 
 const router = Router();
 
 // L'écran n'a qu'un lien, vers Google. Il ne poste rien, ne lit rien, et
 // n'exécute aucun script : c'est une page qui explique et laisse passer.
-function renderIntro(res, next, vers) {
-  res.render(
-    join(res.app.get('views'), 'intro.ejs'),
-    { vers },
-    (err, body) => {
-      if (err) return next(err);
-      res.render(
-        join(res.app.get('views'), 'layout.ejs'),
-        { title: 'Connexion', body },
-        (e, html) => (e ? next(e) : res.send(html))
-      );
-    }
-  );
+function renderIntro(req, res, next, vers) {
+  const t = res.locals.t;
+  renderPage(res, 'intro', {
+    ...res.locals,
+    title: t('intro.title'),
+    // The ONE page that opts out of the path-only rule for the language
+    // switcher. This screen is a live authorization request: switching
+    // language has to come back to the same request, parameters included, or
+    // the person loses the sign-in they were halfway through. Everything in it
+    // is escaped and then URI-encoded, and this page is not the error page the
+    // no-echo rule exists for.
+    currentPath: req.originalUrl,
+    vers
+  }).catch(next);
 }
 
 // Only ever called with a redirect_uri that has already been matched exactly
@@ -55,7 +56,7 @@ router.get('/authorize', async (req, res, next) => {
     const client = await getClient(clientId);
     if (!client || !redirectAllowed(client, redirectUri)) {
       console.warn('authorize rejected: unknown client or redirect_uri');
-      return renderError(res, 400, "Cette application n'est pas autorisée à utiliser Opsidious.");
+      return renderError(res, 400, 'errors.clientNotAllowed');
     }
 
     const state = String(req.query.state ?? '');
@@ -94,7 +95,9 @@ router.get('/authorize', async (req, res, next) => {
 
     // PKCE (RFC 7636). S256 only - see lib/crypto.js for why `plain` is absent.
     const codeChallenge = req.query.code_challenge ? String(req.query.code_challenge) : null;
-    const codeChallengeMethod = req.query.code_challenge_method ? String(req.query.code_challenge_method) : null;
+    const codeChallengeMethod = req.query.code_challenge_method
+      ? String(req.query.code_challenge_method)
+      : null;
 
     if (codeChallengeMethod && codeChallengeMethod !== 'S256') {
       return redirectBack(res, redirectUri, { error: 'invalid_request', state });
@@ -143,8 +146,8 @@ router.get('/authorize', async (req, res, next) => {
     const googleNonce = randomToken(24);
     await dbRun(
       `INSERT INTO auth_requests (id, client_id, redirect_uri, state, nonce, google_nonce,
-                                  code_challenge, code_challenge_method, expires_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+                                  code_challenge, code_challenge_method, ui_locale, expires_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         clientId,
@@ -154,6 +157,8 @@ router.get('/authorize', async (req, res, next) => {
         googleNonce,
         codeChallenge,
         codeChallengeMethod,
+        // Already negotiated by attachLocale, `ui_locales` included.
+        res.locals.locale,
         Date.now() + AUTH_REQUEST_TTL_MS
       ]
     );
@@ -186,7 +191,7 @@ router.get('/authorize', async (req, res, next) => {
       maxAge: 365 * 24 * 3600 * 1000
     });
 
-    return renderIntro(res, next, vers);
+    return renderIntro(req, res, next, vers);
   } catch (err) {
     next(err);
   }

@@ -29,12 +29,35 @@ function timedFetch(url, options = {}) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
+// OIDC Core §3.1.2.1. A string, an array, or a function of the request - the
+// third because an application whose interface language is per-request (a
+// locale in the URL, a cookie, a header) has no single answer to give at
+// startup, and asking it to call `start()` differently per language would be a
+// worse API than just letting it answer per request.
+//
+// Whatever comes back is space-joined and sent as `ui_locales`. The service
+// treats it as a hint: someone who has explicitly chosen a language ON the
+// service keeps it. See its lib/i18n.js.
+function resolveUiLocales(value, req) {
+  const raw = typeof value === 'function' ? value(req) : value;
+  if (!raw) return null;
+  const list = Array.isArray(raw) ? raw : [raw];
+  const cleaned = list
+    .filter((tag) => typeof tag === 'string')
+    .map((tag) => tag.trim())
+    // A language tag, and nothing that could carry a space or a control
+    // character into a URL this library builds.
+    .filter((tag) => /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$/.test(tag));
+  return cleaned.length ? cleaned.join(' ') : null;
+}
+
 export function opsidiousAuth({
   issuer,
   clientId,
   clientSecret,
   redirectUri,
   internalUrl,
+  uiLocales,
   cookieName = 'opsid_tx'
 }) {
   for (const [name, value] of Object.entries({ issuer, clientId, clientSecret, redirectUri })) {
@@ -54,7 +77,7 @@ export function opsidiousAuth({
   });
   const secureCookie = true;
 
-  function start({ silent = false } = {}) {
+  function start({ silent = false, uiLocales: perCall } = {}) {
     return (req, res) => {
       const state = randomBytes(32).toString('base64url');
       const nonce = randomBytes(32).toString('base64url');
@@ -86,6 +109,14 @@ export function opsidiousAuth({
       url.searchParams.set('state', state);
       url.searchParams.set('nonce', nonce);
       if (silent) url.searchParams.set('prompt', 'none');
+
+      // The sign-in screen then speaks the language of the application the
+      // person came from, with nothing to configure on either side. Omitted
+      // entirely when there is nothing to say - an empty parameter is a
+      // parameter the server has to have an opinion about.
+      const locales = resolveUiLocales(perCall ?? uiLocales, req);
+      if (locales) url.searchParams.set('ui_locales', locales);
+
       res.redirect(302, url.toString());
     };
   }

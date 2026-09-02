@@ -56,8 +56,8 @@ test('la clé maîtresse ouvre, et chaque usage a la sienne', async () => {
   );
 
   // Avec une mauvaise clé maîtresse, rien non plus.
-  assert.throws(
-    () => openUnderMaster('pas-la-bonne-cle-du-tout', INFO_KEYSTORE, key.pem_kdf_salt, key.private_pem)
+  assert.throws(() =>
+    openUnderMaster('pas-la-bonne-cle-du-tout', INFO_KEYSTORE, key.pem_kdf_salt, key.private_pem)
   );
 });
 

@@ -19,10 +19,13 @@ after(async () => {
 // the length-mismatch shortcut - but it is not the session's actual token.
 const WRONG_CSRF = '0'.repeat(64);
 
-async function signedIn() {
+async function signedIn(locale = 'en') {
   const { account, pairwiseSalt } = await signInWithGoogleSub(`sub-${Math.random()}`);
   const { cookieValue } = await createSession(account.id, pairwiseSalt);
-  const page = await request(app).get('/account').set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`);
+  const page = await request(app)
+    .get('/account')
+    .set('Cookie', `${SSO_COOKIE_NAME}=${cookieValue}`)
+    .set('Accept-Language', locale);
   const csrf = /name="csrf" value="([^"]+)"/.exec(page.text)[1];
   return { account, cookieValue, csrf, page };
 }
@@ -43,16 +46,25 @@ test('the account page requires a session', async () => {
   assert.equal(res.status, 401);
 });
 
-test('the page says what deleting here does not reach', async () => {
-  // Spec §11. Pairwise subjects mean this service cannot tell applications
-  // whom to erase, so the order matters and the page has to say so.
-  const { page } = await signedIn();
-  assert.equal(page.status, 200);
-  assert.match(page.text, /applications/i);
-  // Pins the explanation itself, not just decorative heading/button text
-  // that also happens to contain "supprim" (e.g. "Supprimer ce compte").
-  assert.match(page.text, /ne seront pas effacées/i);
-});
+// Spec §11. Pairwise subjects mean this service cannot tell applications whom
+// to erase, so the order matters and the page has to say so - IN EVERY
+// LANGUAGE it can be read in. Pinning one language would have let a translation
+// quietly drop the one sentence on the page that is a warning rather than a
+// description.
+for (const [locale, sentence] of [
+  ['en', /will not be erased/i],
+  ['fr', /ne seront pas effacées/i]
+]) {
+  test(`the page says what deleting here does not reach (${locale})`, async () => {
+    const { page } = await signedIn(locale);
+    assert.equal(page.status, 200);
+    assert.equal(page.headers['content-language'], locale);
+    assert.match(page.text, /applications/i);
+    // Pins the explanation itself, not decorative heading or button text that
+    // also happens to contain "delete".
+    assert.match(page.text, sentence);
+  });
+}
 
 test("the account page is not cacheable - it embeds this session's CSRF token", async () => {
   const { page } = await signedIn();

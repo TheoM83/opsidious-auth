@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { join } from 'node:path';
 import { publishedJwks } from '../lib/keys.js';
-import { ISSUER, PUBLIC_URL, ID_TOKEN_TTL_S } from '../lib/config.js';
+import { renderPage } from '../lib/render.js';
+import { LOCALES } from '../lib/i18n.js';
+import { ISSUER, PUBLIC_URL, ID_TOKEN_TTL_S, REGISTRATION_ENABLED } from '../lib/config.js';
 
 const router = Router();
 
@@ -10,6 +11,12 @@ const router = Router();
 // - this is that addition, and only that one. It is a static, read-only
 // description of endpoints that already exist. No userinfo, no registration
 // endpoint, no client management.
+//
+// `registration_endpoint` and `ui_locales_supported` are the two later
+// additions, and both follow the same rule as everything else here: the field
+// appears only when the capability does. A deployment with
+// REGISTRATION_ENABLED=false omits the endpoint rather than advertising one
+// that answers 403.
 //
 // Every field below advertises something this service actually does. A
 // discovery document that promises a capability the server lacks is worse than
@@ -31,6 +38,9 @@ const DISCOVERY = Object.freeze({
   authorization_endpoint: `${PUBLIC_URL}/authorize`,
   token_endpoint: `${PUBLIC_URL}/token`,
   jwks_uri: `${PUBLIC_URL}/.well-known/jwks.json`,
+  // RFC 7591 §4. Open: no initial access token, no software statement, no
+  // operator. See routes/register.js for why that is not a hole.
+  ...(REGISTRATION_ENABLED ? { registration_endpoint: `${PUBLIC_URL}/register` } : {}),
   response_types_supported: ['code'],
   response_modes_supported: ['query'],
   grant_types_supported: ['authorization_code'],
@@ -42,6 +52,12 @@ const DISCOVERY = Object.freeze({
   // No email, no profile, no name: the service never receives them, so it
   // could not put them in a token even if a client asked.
   claims_supported: ['iss', 'sub', 'aud', 'exp', 'iat', 'nonce'],
+  // OIDC Core §3.1.2.1. This service used to accept `ui_locales` and ignore it,
+  // which the spec permits - but a parameter that is accepted and ignored is
+  // indistinguishable from one that is honoured until someone checks. It is
+  // honoured now, so it is advertised now, and test/wellknown.test.js pins the
+  // two lists to each other.
+  ui_locales_supported: [...LOCALES],
   id_token_lifetime_seconds: ID_TOKEN_TTL_S
 });
 
@@ -65,18 +81,13 @@ router.get('/.well-known/jwks.json', async (req, res, next) => {
 // redirect bar - was met with an error page for a service whose entire subject
 // is being trustworthy about what it does.
 router.get('/', (req, res, next) => {
-  res.render(
-    join(res.app.get('views'), 'home.ejs'),
-    {},
-    (err, body) => {
-      if (err) return next(err);
-      res.render(
-        join(res.app.get('views'), 'layout.ejs'),
-        { title: 'Opsidious', body },
-        (e, html) => (e ? next(e) : res.send(html))
-      );
-    }
-  );
+  const t = res.locals.t;
+  renderPage(res, 'home', {
+    ...res.locals,
+    title: t('home.title'),
+    registrationOpen: REGISTRATION_ENABLED,
+    publicUrl: PUBLIC_URL
+  }).catch(next);
 });
 
 export default router;

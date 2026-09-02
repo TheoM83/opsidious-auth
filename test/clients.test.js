@@ -1,7 +1,13 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initDatabase, closeDatabase, dbGet } from '../lib/database.js';
-import { createClient, getClient, verifyClientSecret, redirectAllowed, isPublicClient } from '../lib/clients.js';
+import {
+  createClient,
+  getClient,
+  verifyClientSecret,
+  redirectAllowed,
+  isPublicClient
+} from '../lib/clients.js';
 
 const CALLBACK = 'https://defnote.opsidious.com/auth/callback';
 

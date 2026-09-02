@@ -78,16 +78,35 @@
    Depuis, l'écran d'introduction montre le mécanisme partie par partie, à la
    première connexion. Le bouton n'a donc plus à porter la démonstration : il
    annonce, l'écran explique.
-   
+
    Ce qui reste est ce qui ne peut pas être déduit du libellé : que c'est
-   anonyme, et que ça passe par Google. */
+   anonyme, et que ça passe par Google.
+
+   ── La mention se traduit toute seule ──
+   Le libellé du bouton appartient à l'application : c'est le texte du lien,
+   elle l'écrit dans sa langue. La mention, elle, appartient à cette feuille,
+   et elle suit `:lang()` — donc la langue déclarée par la page. Une page
+   `<html lang="fr">` obtient la mention en français sans rien configurer, et
+   une application qui bascule sa langue bascule le bouton avec elle.
+
+   L'anglais est le défaut : il sert aussi de repli pour une langue que cette
+   feuille ne connaît pas, où du français serait un choix arbitraire.
+
+   `--opsid-mention` reste la sortie de secours, pour une langue absente d'ici
+   ou une formulation imposée :
+
+     .opsid-signin { --opsid-mention: 'Anónimo · vía Google'; } */
 .opsid-signin::after {
-  content: 'Anonyme · via Google';
+  content: var(--opsid-mention, 'Anonymous · via Google');
   grid-column: 2;
   color: var(--opsid-note);
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.04em;
+}
+
+.opsid-signin:lang(fr)::after {
+  content: var(--opsid-mention, 'Anonyme · via Google');
 }
 
 /* Le logo est un hexagone traversé d'une barre. Le bouton emprunte ce trait :

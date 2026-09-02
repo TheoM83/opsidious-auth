@@ -5,7 +5,7 @@ import { signInWithGoogleSub } from '../lib/accounts.js';
 import { createSession, deleteSessionByCookie } from '../lib/sessions.js';
 import { issueCode } from '../lib/codes.js';
 import { pairwiseSubject } from '../lib/crypto.js';
-import { renderError } from '../lib/middleware.js';
+import { renderError, useLocale } from '../lib/middleware.js';
 import { redirectBack } from './authorize.js';
 import { SSO_COOKIE_NAME, SSO_TTL_MS } from '../lib/config.js';
 
@@ -37,8 +37,14 @@ router.get('/callback/google', async (req, res, next) => {
     // on, so this can only be a page, never a redirect.
     if (!parked || changes !== 1) {
       console.warn('callback rejected: unknown or expired request');
-      return renderError(res, 400, 'Cette demande de connexion a expiré. Recommencez.');
+      return renderError(res, 400, 'errors.requestExpired');
     }
+
+    // The language the sign-in was STARTED in, replayed here. Google is a
+    // detour, and a detour must not change the language of the page you come
+    // back to — the browser's Accept-Language may well disagree with the
+    // `ui_locales` the application asked for, and the application asked first.
+    if (parked.ui_locale) useLocale(res, parked.ui_locale);
 
     if (req.query.error) {
       return redirectBack(res, parked.redirect_uri, {

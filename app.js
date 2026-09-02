@@ -7,12 +7,14 @@ import cookieParser from 'cookie-parser';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDatabase } from './lib/database.js';
-import { globalLimiter, renderError } from './lib/middleware.js';
+import { globalLimiter, renderError, attachLocale } from './lib/middleware.js';
 import authorizeRoutes from './routes/authorize.js';
 import callbackRoutes from './routes/callback.js';
 import tokenRoutes from './routes/token.js';
 import wellKnownRoutes from './routes/wellknown.js';
 import accountRoutes from './routes/account.js';
+import registerRoutes from './routes/register.js';
+import langRoutes from './routes/lang.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -89,6 +91,11 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.use(express.json({ limit: '16kb' }));
 app.use(cookieParser());
 
+// After cookieParser (it reads the language cookie) and ahead of every route
+// that can fail, so an error page is rendered in the same language as the page
+// the person was asking for.
+app.use(attachLocale);
+
 // Registered before anything else so a broken database still reports the
 // process as alive.
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
@@ -144,14 +151,32 @@ app.use(callbackRoutes);
 app.use(tokenRoutes);
 app.use(wellKnownRoutes);
 app.use(accountRoutes);
+app.use(registerRoutes);
+app.use(langRoutes);
 
-app.use((req, res) => renderError(res, 404, 'Page introuvable.'));
+app.use((req, res) => renderError(res, 404, 'errors.notFound'));
 
 // Four arguments, or Express does not treat this as an error handler.
 app.use((err, req, res, _next) => {
+  // A body this service could not parse is the CALLER's mistake, and it used to
+  // be reported as a 500 - the service accusing itself of a fault that was
+  // never its own. Registration is the endpoint where this matters: an
+  // integrator sending slightly wrong JSON was told the identity provider had
+  // broken. body-parser marks these with a `type` and a 4xx status of its own.
+  if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+    const status = err.status || 400;
+    if (req.path === '/register') {
+      return res.status(status).json({
+        error: 'invalid_client_metadata',
+        error_description: 'the request body could not be read as JSON'
+      });
+    }
+    return renderError(res, status, 'errors.invalidRequest');
+  }
+
   // The message only. A stack in a log is fine; a query string is not.
   console.error('unhandled error:', err.message);
-  renderError(res, 500, 'Erreur du service.');
+  renderError(res, 500, 'errors.serverError');
 });
 
 export async function initForTest() {

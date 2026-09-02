@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { join } from 'node:path';
 import { resolveSession, deleteSessionByCookie } from '../lib/sessions.js';
 import { deleteAccount, getAccount } from '../lib/accounts.js';
 import { dbAll } from '../lib/database.js';
 import { sha256, safeEqual } from '../lib/crypto.js';
 import { renderError } from '../lib/middleware.js';
+import { renderPage } from '../lib/render.js';
+import { LOCALES, CATALOGUES } from '../lib/i18n.js';
 import { SSO_COOKIE_NAME } from '../lib/config.js';
 
 const router = Router();
@@ -30,49 +31,48 @@ const router = Router();
 // truthfulness, a technically-derived but misleading number costs more than it
 // would anywhere else.
 
-function describeRow(account, sessionCount) {
+function describeRow(t, account, sessionCount) {
+  const f = (name) => `account.fields.${name}`;
   return [
-    {
-      field: 'id',
-      shape: 'UUID aléatoire, 122 bits',
-      kind: 'Identifiant interne. Aucune application ne le reçoit jamais.',
-      reveals: null
-    },
+    { field: 'id', shape: t(`${f('id')}.shape`), kind: t(`${f('id')}.kind`), reveals: null },
     {
       field: 'google_sub_hash',
-      shape: 'HMAC-SHA256, 32 octets',
-      kind: 'Votre identifiant Google, passé dans un HMAC sous une clé propre à ce serveur. L’identifiant lui-même n’est écrit nulle part.',
+      shape: t(`${f('googleSubHash')}.shape`),
+      kind: t(`${f('googleSubHash')}.kind`),
       reveals: null
     },
-    {
-      field: 'kdf_salt',
-      shape: '16 octets aléatoires',
-      kind: 'Sert à dériver la clé qui scelle le champ suivant.',
-      reveals: null
-    },
+    { field: 'kdf_salt', shape: t(`${f('kdfSalt')}.shape`), kind: t(`${f('kdfSalt')}.kind`), reveals: null },
     {
       field: 'sealed_salt',
-      shape: '60 octets — 12 (IV) + 16 (auth) + 32 (sel)',
-      kind: 'Votre sel pairwise, scellé sous une clé que ce serveur ne conserve jamais. Il ne s’ouvre qu’au moment où vous vous connectez.',
+      shape: t(`${f('sealedSalt')}.shape`),
+      kind: t(`${f('sealedSalt')}.kind`),
       reveals: null
     },
     {
       field: 'created_at',
+      // The stored value, not a localised rendering of it. This page shows the
+      // row as it IS - a date formatted for the reader's locale would be the
+      // one line on the page that had been dressed up.
       shape: new Date(account.created_at).toISOString().slice(0, 10),
-      kind: 'Le jour de votre première connexion, arrondi à la journée — l’heure n’est pas gardée.',
+      kind: t(`${f('createdAt')}.kind`),
       // The one field that discloses something. The page says so out loud
       // instead of burying it among the reassuring ones.
-      reveals: 'Le jour où vous êtes arrivé. C’est la seule chose que cette ligne apprend à qui la lit.'
+      reveals: t(`${f('createdAt')}.reveals`)
     },
     {
       field: 'sso_sessions',
       shape: String(sessionCount),
-      kind: 'Navigateurs actuellement connectés. Chacun ne garde qu’une empreinte de son cookie, jamais le cookie.',
-      reveals:
-        sessionCount > 1 ? `Que vous êtes connecté depuis ${sessionCount} navigateurs.` : null
+      kind: t(`${f('ssoSessions')}.kind`),
+      reveals: sessionCount > 1 ? t(`${f('ssoSessions')}.reveals`, { count: sessionCount }) : null
     }
   ];
 }
+
+// Every locale's confirmation word is accepted, whichever language the page was
+// rendered in. The CSRF token above is the actual control; this word is
+// deliberate friction against a misclick, and friction that fails because
+// someone's browser switched language between the page and the submit is not
+// friction, it is a bug. See the note on the CSRF check below.
 
 // Derived from the session cookie, which an attacker on another origin cannot
 // read. No extra table, no extra cookie.
@@ -91,7 +91,7 @@ async function requireSession(req, res) {
   const cookieValue = req.cookies?.[SSO_COOKIE_NAME];
   const resolved = await resolveSession(cookieValue);
   if (!resolved) {
-    await renderError(res, 401, 'Vous n’êtes pas connecté à Opsidious.');
+    await renderError(res, 401, 'errors.notSignedIn');
     return null;
   }
   return { ...resolved, cookieValue };
@@ -117,21 +117,13 @@ router.get('/account', async (req, res, next) => {
       current.session.account_id
     ]);
 
-    res.render(
-      join(res.app.get('views'), 'account.ejs'),
-      {
-        csrf: csrfFor(current.cookieValue),
-        row: describeRow(account, sessions.length)
-      },
-      (err, body) => {
-        if (err) return next(err);
-        res.render(
-          join(res.app.get('views'), 'layout.ejs'),
-          { title: 'Compte Opsidious', body },
-          (e, html) => (e ? next(e) : res.send(html))
-        );
-      }
-    );
+    const t = res.locals.t;
+    await renderPage(res, 'account', {
+      ...res.locals,
+      title: t('account.title'),
+      csrf: csrfFor(current.cookieValue),
+      row: describeRow(t, account, sessions.length)
+    });
   } catch (err) {
     next(err);
   }
@@ -141,7 +133,7 @@ router.post('/logout', async (req, res, next) => {
   try {
     const current = await requireSession(req, res);
     if (!current) return undefined;
-    if (!checkCsrf(req, current.cookieValue)) return renderError(res, 403, 'Requête invalide.');
+    if (!checkCsrf(req, current.cookieValue)) return renderError(res, 403, 'errors.invalidRequest');
 
     await deleteSessionByCookie(current.cookieValue);
     clearSsoCookie(res);
@@ -155,14 +147,22 @@ router.post('/account/delete', async (req, res, next) => {
   try {
     const current = await requireSession(req, res);
     if (!current) return undefined;
-    if (!checkCsrf(req, current.cookieValue)) return renderError(res, 403, 'Requête invalide.');
+    if (!checkCsrf(req, current.cookieValue)) return renderError(res, 403, 'errors.invalidRequest');
 
-    // The CSRF token above is the actual security control. SUPPRIMER is
-    // fixed and public, so it stops nothing an attacker who can pass the
-    // CSRF check couldn't also supply - its job is deliberate friction
+    // The CSRF token above is the actual security control. The confirmation
+    // word is fixed and public, so it stops nothing an attacker who can pass
+    // the CSRF check couldn't also supply - its job is deliberate friction
     // against an authenticated user's own misclick on an irreversible action.
-    if (String(req.body?.confirm ?? '').trim() !== 'SUPPRIMER') {
-      return renderError(res, 400, 'Saisissez SUPPRIMER pour confirmer.');
+    //
+    // Every language's word is accepted, not just the one this page was
+    // rendered in. Someone who switched language between loading the form and
+    // submitting it typed a real confirmation word; refusing it would be an
+    // error message about nothing.
+    const words = LOCALES.map((code) => CATALOGUES[code].account.deleteWord);
+    if (!words.includes(String(req.body?.confirm ?? '').trim())) {
+      return renderError(res, 400, 'errors.confirmDelete', {
+        word: res.locals.t('account.deleteWord')
+      });
     }
 
     await deleteAccount(current.session.account_id); // sessions cascade
