@@ -66,9 +66,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # This repository deploys itself. The server's repository holds neither
-      # this stack's compose fragment nor its secrets - see
-      # mercury/docs/architecture-deploiement.md. The compose project name
+      # This repository deploys itself. The server's own repository holds neither
+      # this stack's compose fragment nor its secrets - that repository owns the
+      # base stack, this one owns the application. The compose project name
       # `opsidious-auth` is part of that contract: it namespaces the volumes.
       #
       # This step used to be gated on `workflow_run` alone, so a manual
@@ -90,7 +90,7 @@ jobs:
       # The image is pushed by the step above, so letting this one fail loudly
       # costs nothing: the image is already published either way, and a red run
       # is the only honest report when the server was not updated.
-      - name: Deploy on mercury (SSH)
+      - name: Deploy to the server (SSH)
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SERVER_HOST }}
@@ -126,7 +126,7 @@ jobs:
           #
           # Deux tests ecrits en toutes lettres plutot qu'une boucle sur les
           # noms : la boucle etait plus courte et illisible, et le controle de
-          # mercury ne la reconnaissait pas comme une garde.
+          # deploiement du socle ne la reconnaissait pas comme une garde.
           if [ -z "${GOOGLE_CLIENT_ID:-}" ]; then
             echo "Le secret GOOGLE_CLIENT_ID est vide ou absent du depot." >&2
             echo "Sans lui, le service demarre mais aucune connexion n'aboutit." >&2
@@ -153,9 +153,13 @@ jobs:
           EOF
 
           SSH_OPTS="-i $HOME/.ssh/id -o StrictHostKeyChecking=yes"
+
+          # BACKUPS_DIR est passe a compose plutot qu'ecrit dans le fragment :
+          # le chemin depend de l'utilisateur SSH, et le fragment est un fichier
+          # public. Il est resolu sur le serveur, pas ici.
           ssh $SSH_OPTS "$SSH_USER@$SSH_HOST"             "mkdir -p ~/apps/opsidious-auth ~/opsidious-auth/backups && chmod 700 ~/apps/opsidious-auth"
           scp $SSH_OPTS deploy/docker-compose.yml secrets.env             "$SSH_USER@$SSH_HOST:~/apps/opsidious-auth/"
-          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST"             "cd ~/apps/opsidious-auth && chmod 600 secrets.env && docker compose -p opsidious-auth pull && docker compose -p opsidious-auth up -d"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST"             "cd ~/apps/opsidious-auth && chmod 600 secrets.env && BACKUPS_DIR=\"\$HOME/opsidious-auth/backups\" docker compose -p opsidious-auth pull && BACKUPS_DIR=\"\$HOME/opsidious-auth/backups\" docker compose -p opsidious-auth up -d"
 
           # `up -d` rend la main des que le conteneur est CREE, pas quand
           # l'application fonctionne. Sans cette verification, un conteneur qui

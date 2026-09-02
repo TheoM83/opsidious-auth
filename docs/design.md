@@ -16,20 +16,20 @@ was right the first time. Anything unmarked describes the code as it stands.
 
 The divergences, gathered here so nobody has to hunt for them:
 
-| What changed | Where | Why |
-|---|---|---|
-| `codes.app_sub`, `client_id`, `redirect_uri` and `nonce` became nullable, and are nulled the instant a code is resolved | §4.2, §5 | A live code row links an account to a named application through its `sso_session_id`. Tombstoning closes that window as soon as the code is spent; the original `NOT NULL` made it impossible. This is the single most important anonymity refinement made during implementation, and the original design missed it. |
-| `codes.used` became a four-valued outcome rather than a boolean | §5, §6, §7.4, §7.5 | A code *rejected* for a mismatch is not evidence of a leak and must not revoke the session, while a genuine replay must. One bit cannot tell those apart. |
-| `auth_requests.client_id` carries no foreign key | §5 | Not delivered as specified; the consequence was checked rather than assumed, and is bounded. See the note in §5. |
-| `BASE_URL` became `PUBLIC_URL`, with no default | §7.19, §10 | Nothing may be hardcoded to a domain (§13), so the value has to come from the deployment and its absence has to be fatal. §10's prerequisite list omitted it entirely, which made a compose entry built from that section crash-loop on first boot. |
-| Codes are swept on their own, much shorter cadence | §7.20 | An *abandoned* code has no resolution to tombstone it, so it names an application until it is deleted. Riding the ten-minute sweep let a 60-second row survive for eleven minutes. |
-| A code left in flight by a crashed process is recovered, not read as a leak forever | §5, §7.5 | A process dying between claiming a code and resolving it used to leave a row indistinguishable from a live concurrent exchange. |
-| Ownership is enforced inside the guarded `UPDATE` | §6, §7.4, §7.6 | A client that does not own a code can no longer move its row at all, rather than being rejected after the fact. |
-| `prompt=login` revokes the session it re-authenticates past | §6 | Otherwise the cookie the browser had already abandoned kept working for the rest of its own fourteen days. |
-| `/healthz` is a liveness probe and nothing more | §6 | Stated explicitly because an earlier comment claimed it could also tell a broken database apart, which it cannot. |
-| The client is **installed** as `opsidious-auth` and **imported** as `opsidious-auth/client` | §3.2 | npm has no subdirectory support for git dependencies, so the distribution this design assumed could never deliver `client/`. Following the old instruction produced a package that did not resolve. |
-| `POST /token` has two failure shapes, not one | §6 | Grant failures and client-authentication failures are deliberately distinguishable from each other, and indistinguishable within themselves. A `client_id` is public by design, so hiding whether one exists protects nothing. |
-| The threat model states impersonation and bulk matching, not only linkage | §4, §4.1, §4.3 | A dump yields the plaintext signing key and therefore token forgery against every registered application — categorically worse than the anonymity questions this document was mostly about, and previously absent from it. |
+| What changed                                                                                                            | Where              | Why                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `codes.app_sub`, `client_id`, `redirect_uri` and `nonce` became nullable, and are nulled the instant a code is resolved | §4.2, §5           | A live code row links an account to a named application through its `sso_session_id`. Tombstoning closes that window as soon as the code is spent; the original `NOT NULL` made it impossible. This is the single most important anonymity refinement made during implementation, and the original design missed it. |
+| `codes.used` became a four-valued outcome rather than a boolean                                                         | §5, §6, §7.4, §7.5 | A code _rejected_ for a mismatch is not evidence of a leak and must not revoke the session, while a genuine replay must. One bit cannot tell those apart.                                                                                                                                                            |
+| `auth_requests.client_id` carries no foreign key                                                                        | §5                 | Not delivered as specified; the consequence was checked rather than assumed, and is bounded. See the note in §5.                                                                                                                                                                                                     |
+| `BASE_URL` became `PUBLIC_URL`, with no default                                                                         | §7.19, §10         | Nothing may be hardcoded to a domain (§13), so the value has to come from the deployment and its absence has to be fatal. §10's prerequisite list omitted it entirely, which made a compose entry built from that section crash-loop on first boot.                                                                  |
+| Codes are swept on their own, much shorter cadence                                                                      | §7.20              | An _abandoned_ code has no resolution to tombstone it, so it names an application until it is deleted. Riding the ten-minute sweep let a 60-second row survive for eleven minutes.                                                                                                                                   |
+| A code left in flight by a crashed process is recovered, not read as a leak forever                                     | §5, §7.5           | A process dying between claiming a code and resolving it used to leave a row indistinguishable from a live concurrent exchange.                                                                                                                                                                                      |
+| Ownership is enforced inside the guarded `UPDATE`                                                                       | §6, §7.4, §7.6     | A client that does not own a code can no longer move its row at all, rather than being rejected after the fact.                                                                                                                                                                                                      |
+| `prompt=login` revokes the session it re-authenticates past                                                             | §6                 | Otherwise the cookie the browser had already abandoned kept working for the rest of its own fourteen days.                                                                                                                                                                                                           |
+| `/healthz` is a liveness probe and nothing more                                                                         | §6                 | Stated explicitly because an earlier comment claimed it could also tell a broken database apart, which it cannot.                                                                                                                                                                                                    |
+| The client is **installed** as `opsidious-auth` and **imported** as `opsidious-auth/client`                             | §3.2               | npm has no subdirectory support for git dependencies, so the distribution this design assumed could never deliver `client/`. Following the old instruction produced a package that did not resolve.                                                                                                                  |
+| `POST /token` has two failure shapes, not one                                                                           | §6                 | Grant failures and client-authentication failures are deliberately distinguishable from each other, and indistinguishable within themselves. A `client_id` is public by design, so hiding whether one exists protects nothing.                                                                                       |
+| The threat model states impersonation and bulk matching, not only linkage                                               | §4, §4.1, §4.3     | A dump yields the plaintext signing key and therefore token forgery against every registered application — categorically worse than the anonymity questions this document was mostly about, and previously absent from it.                                                                                           |
 
 **Goal:** one identity provider for every Opsidious project. Google is the only
 sign-in method, the service learns nothing about a person beyond an opaque
@@ -82,24 +82,24 @@ its auth can be replaced now at no migration cost.
 Each of these was a real fork. Recording the reason so the next reader does not
 re-open it.
 
-| Decision | Reason |
-|---|---|
-| Central service, not a shared library | One Google OAuth client for all projects. A new app never touches the Google console again. |
-| Pairwise subject per app | Two apps comparing their databases row by row must not be able to tell they share a user. This is the strong reading of "anonymous". |
-| Silent SSO | Expected of a single brand. Costs nothing extra given the service is visited directly during `/authorize`. |
-| Host-only SSO cookie, `__Host-` prefix | A `.opsidious.com` cookie is readable by every subdomain; one compromised subdomain would hand over every session. The browser visits `auth.opsidious.com` directly, so a host-only cookie is sufficient — the whole subdomain trust boundary disappears. |
-| Per-account pairwise salt | A single global pepper would be one secret whose leak compromises every account's derivation, unrotatably. A per-account salt bounds the blast radius to one account. |
-| Rotating signing keys with `kid` | A single permanent signing key cannot be replaced after a suspected leak. |
-| Google `openid` scope only | We do not merely decline to store the email — we never request it. The strongest form of the guarantee is not having the data. |
-| Server-side redirect to Google, not the JS SDK | No third-party script anywhere in the system. Both the auth service and Defnote get a CSP with zero external origins. |
-| ID token lifetime of 120 s | It is used once, immediately, to establish the app's own session. |
-| SSO session of 14 days, absolute | An identity-provider session is a higher-value bearer token than an app session. Not sliding, so a stolen cookie cannot be kept alive indefinitely by using it. |
-| `jose`, no `google-auth-library` | §3.1. Dependency surface is a security property here. |
-| Access logging off at the proxy | §7.28. The one hole that lives outside the application. |
-| Salt envelope-encrypted, never at rest in the clear | §4.3. Without it, a database dump links every application to every other. Validated by spike before being specified. |
-| No interstitial sign-in page | Google is the only method; a page offering one choice is friction and an extra attack surface. |
-| A client package rather than integration docs | §3.2. It turns six client-side security requirements into one dependency. |
-| Public repository | §13. An identity provider nobody can inspect is one nobody can audit. |
+| Decision                                            | Reason                                                                                                                                                                                                                                                    |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Central service, not a shared library               | One Google OAuth client for all projects. A new app never touches the Google console again.                                                                                                                                                               |
+| Pairwise subject per app                            | Two apps comparing their databases row by row must not be able to tell they share a user. This is the strong reading of "anonymous".                                                                                                                      |
+| Silent SSO                                          | Expected of a single brand. Costs nothing extra given the service is visited directly during `/authorize`.                                                                                                                                                |
+| Host-only SSO cookie, `__Host-` prefix              | A `.opsidious.com` cookie is readable by every subdomain; one compromised subdomain would hand over every session. The browser visits `auth.opsidious.com` directly, so a host-only cookie is sufficient — the whole subdomain trust boundary disappears. |
+| Per-account pairwise salt                           | A single global pepper would be one secret whose leak compromises every account's derivation, unrotatably. A per-account salt bounds the blast radius to one account.                                                                                     |
+| Rotating signing keys with `kid`                    | A single permanent signing key cannot be replaced after a suspected leak.                                                                                                                                                                                 |
+| Google `openid` scope only                          | We do not merely decline to store the email — we never request it. The strongest form of the guarantee is not having the data.                                                                                                                            |
+| Server-side redirect to Google, not the JS SDK      | No third-party script anywhere in the system. Both the auth service and Defnote get a CSP with zero external origins.                                                                                                                                     |
+| ID token lifetime of 120 s                          | It is used once, immediately, to establish the app's own session.                                                                                                                                                                                         |
+| SSO session of 14 days, absolute                    | An identity-provider session is a higher-value bearer token than an app session. Not sliding, so a stolen cookie cannot be kept alive indefinitely by using it.                                                                                           |
+| `jose`, no `google-auth-library`                    | §3.1. Dependency surface is a security property here.                                                                                                                                                                                                     |
+| Access logging off at the proxy                     | §7.28. The one hole that lives outside the application.                                                                                                                                                                                                   |
+| Salt envelope-encrypted, never at rest in the clear | §4.3. Without it, a database dump links every application to every other. Validated by spike before being specified.                                                                                                                                      |
+| No interstitial sign-in page                        | Google is the only method; a page offering one choice is friction and an extra attack surface.                                                                                                                                                            |
+| A client package rather than integration docs       | §3.2. It turns six client-side security requirements into one dependency.                                                                                                                                                                                 |
+| Public repository                                   | §13. An identity provider nobody can inspect is one nobody can audit.                                                                                                                                                                                     |
 
 ---
 
@@ -174,16 +174,16 @@ Integrating must take three lines, not thirty. The repository ships
 import { opsidiousAuth } from 'opsidious-auth/client';
 
 const auth = opsidiousAuth({
-  issuer:       'https://auth.opsidious.com',
-  clientId:     process.env.OPSIDIOUS_CLIENT_ID,
+  issuer: 'https://auth.opsidious.com',
+  clientId: process.env.OPSIDIOUS_CLIENT_ID,
   clientSecret: process.env.OPSIDIOUS_CLIENT_SECRET,
-  redirectUri:  'https://defnote.opsidious.com/auth/callback',
-  internalUrl:  process.env.OPSIDIOUS_AUTH_INTERNAL_URL   // optional, see §10
+  redirectUri: 'https://defnote.opsidious.com/auth/callback',
+  internalUrl: process.env.OPSIDIOUS_AUTH_INTERNAL_URL // optional, see §10
 });
 
 app.get('/auth/start', auth.start());
 app.get('/auth/callback', auth.callback(), (req, res) => {
-  req.opsidious.sub;   // verified pairwise subject — create your own session
+  req.opsidious.sub; // verified pairwise subject — create your own session
   res.redirect('/app');
 });
 ```
@@ -207,7 +207,7 @@ outright until it was fixed:
 
 - **npm has no subdirectory support for git dependencies.** No install
   command delivers `client/` on its own.
-  `npm install github:TheoM83/opsidious-auth` installs the *root* package —
+  `npm install github:TheoM83/opsidious-auth` installs the _root_ package —
   the service, `sqlite3` and all — and nothing named `opsidious-auth-client` appears
   in the consumer's `node_modules`. `require.resolve('opsidious-auth-client')`
   fails after following the instructions, which is as broken as an
@@ -238,7 +238,7 @@ can be tested:
 > corresponds to any activity. Deanonymising one person additionally requires
 > that person's Google subject identifier, obtained from somewhere else.
 
-An earlier draft of this design only claimed unlinkability *without* the auth
+An earlier draft of this design only claimed unlinkability _without_ the auth
 database — meaning a dump of it linked every app to every other. That was too
 weak, and §4.3 is how it was fixed.
 
@@ -246,7 +246,7 @@ Two things that statement does **not** say, both of which matter more than
 anything it does say, and both of which are easy to read into it by accident:
 
 - **It is a statement about linkage, not about integrity.** A dump does not
-  link accounts to applications; it *does* hand over `signing_keys.private_pem`
+  link accounts to applications; it _does_ hand over `signing_keys.private_pem`
   and therefore the ability to mint an ID token for any subject and any
   audience. A database compromise is a total impersonation compromise of
   every registered application. That is normal for an identity provider and
@@ -266,7 +266,7 @@ It is enforced by four things.
 **Derivation, not storage.**
 
 ```js
-app_sub = base64url(hmacSha256(pairwise_salt, client_id))
+app_sub = base64url(hmacSha256(pairwise_salt, client_id));
 ```
 
 `pairwise_salt` is 32 random bytes generated when the account is created. The
@@ -288,7 +288,7 @@ email, name or picture to leak, discard, or accidentally log.
 **The Google subject is stored hashed.**
 
 ```js
-google_sub_hash = hmacSha256(settings.lookup_pepper, google_sub)
+google_sub_hash = hmacSha256(settings.lookup_pepper, google_sub);
 ```
 
 Login has to find an existing account from a Google subject, so this one lookup
@@ -307,9 +307,9 @@ a single Google identifier. That is the weakness this section removes.
 Two copies exist, wrapped differently, because two code paths need it and each
 holds a different short-lived secret:
 
-| Copy | Wrapping key | Held by the server only during |
-|---|---|---|
-| `accounts.sealed_salt` | `HKDF(google_sub, accounts.kdf_salt, "opsidious-pairwise-v1")` | a live Google sign-in |
+| Copy                       | Wrapping key                                                    | Held by the server only during    |
+| -------------------------- | --------------------------------------------------------------- | --------------------------------- |
+| `accounts.sealed_salt`     | `HKDF(google_sub, accounts.kdf_salt, "opsidious-pairwise-v1")`  | a live Google sign-in             |
 | `sso_sessions.sealed_salt` | `HKDF(cookie_value, sessions.kdf_salt, "opsidious-session-v1")` | a request carrying the SSO cookie |
 
 Both are AES-256-GCM. The Google subject is never stored; the cookie value is
@@ -336,7 +336,7 @@ comforting impression than the mechanism deserves:
 
 - **A count of accounts**, and their creation dates rounded to the day.
 - **Every registered application**, from the `clients` table: id, name and
-  redirect URIs. There is no anonymity for *applications*, only for people.
+  redirect URIs. There is no anonymity for _applications_, only for people.
 - **The ability to mint tokens.** `signing_keys.private_pem` is a plaintext
   PEM private key whose public half every application trusts through the
   published JWKS. Whoever holds the dump can forge an ID token with any `sub`
@@ -347,7 +347,7 @@ comforting impression than the mechanism deserves:
   a fresh one, and treat every application's own sessions as compromised.
 - **The lookup pepper**, from `settings`.
 
-**What it still costs to deanonymise one person:** the dump *and* that
+**What it still costs to deanonymise one person:** the dump _and_ that
 person's Google subject identifier, obtained elsewhere. With both, the lookup
 hash finds their row and the subject unwraps their salt. This is unavoidable
 — a login must be able to find an existing account from a Google subject.
@@ -357,14 +357,14 @@ direction of it being cheaper than claimed:
 
 - **It is not one application's subject, it is all of them.** `clients`
   enumerates every registered application, so the salt is unwrapped once and
-  then one HMAC per client yields that person's subject *everywhere they have
-  an account* — and, since the derivation does not depend on whether they
+  then one HMAC per client yields that person's subject _everywhere they have
+  an account_ — and, since the derivation does not depend on whether they
   ever used the application, everywhere they might. There is no residual
   "which applications did they use" protection left once the salt is open.
 - **It is not a per-person cost when the adversary has a corpus.** `[diverged]`
   — this section used to end with "it is a per-person cost, not a bulk one".
-  That is true of the *unwrapping* step, which needs a Google subject per
-  account, and it was never true of the *matching* step. The pepper is in the
+  That is true of the _unwrapping_ step, which needs a Google subject per
+  account, and it was never true of the _matching_ step. The pepper is in the
   dump, so a corpus of candidate Google subjects — from another breach, or
   from any service that stores them — can be hashed under it and joined
   against `google_sub_hash` in a single embarrassingly-parallel pass, with no
@@ -372,7 +372,7 @@ direction of it being cheaper than claimed:
   subjects you already hold have Opsidious accounts is a bulk sweep;
   unwrapping a salt is per-person and needs that person's actual subject.
 
-*Validated before specifying.* A throwaway spike exercised the full mechanism:
+_Validated before specifying._ A throwaway spike exercised the full mechanism:
 two clients yielding different subjects, the subject stable across sessions,
 the silent path recovering the salt without the Google subject, a wrong subject
 failing to unwrap rather than returning garbage, and a serialised dump
@@ -387,19 +387,19 @@ deletion works the way §11 describes.
 
 Who we are defending the guarantee against, and how.
 
-| Adversary | Reaches | Defence |
-|---|---|---|
-| One app's database (leak, or the app itself) | pairwise subjects, pseudos, that app's content | Subjects are HMAC outputs over a salt the app never sees. Comparing two apps' dumps yields nothing. |
-| The auth database — *anonymity* | account rows, sealed salts, sessions | No email or name exists to leak. Google subjects are stored hashed. **No row records which apps an account uses**, beyond a sign-in in flight at that instant (§4.2). |
-| The auth database — *impersonation* | **the signing key, in the clear** | **Not defended.** `signing_keys.private_pem` is a plaintext PEM; the holder forges an ID token for any `sub` and any `aud`, and every registered application verifies it against the published JWKS. A dump is a total impersonation compromise of the whole estate — worse, and more urgent, than every anonymity row in this table. Recovery is key rotation, not damage limitation. §4.3. |
-| The auth database *plus* a corpus of Google subjects | which of those subjects have accounts | **Not defended.** The lookup pepper is in the dump, so matching a corpus is one parallel pass, not a per-person cost. Unwrapping any one salt still needs that person's own subject. §4.3. |
-| Network observer | TLS-encrypted traffic | Nothing to add. |
-| Reverse-proxy or CDN logs | URLs, IPs, timestamps | §7.3 — access logging is disabled for this host. This is the gap most likely to be missed. |
-| Someone holding *both* app databases and the auth database | everything | Not defended. Correlation is possible by recomputing the HMACs. |
-| The operator | everything, over time | Not defended, and cannot be. See below. |
+| Adversary                                                  | Reaches                                        | Defence                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One app's database (leak, or the app itself)               | pairwise subjects, pseudos, that app's content | Subjects are HMAC outputs over a salt the app never sees. Comparing two apps' dumps yields nothing.                                                                                                                                                                                                                                                                                          |
+| The auth database — _anonymity_                            | account rows, sealed salts, sessions           | No email or name exists to leak. Google subjects are stored hashed. **No row records which apps an account uses**, beyond a sign-in in flight at that instant (§4.2).                                                                                                                                                                                                                        |
+| The auth database — _impersonation_                        | **the signing key, in the clear**              | **Not defended.** `signing_keys.private_pem` is a plaintext PEM; the holder forges an ID token for any `sub` and any `aud`, and every registered application verifies it against the published JWKS. A dump is a total impersonation compromise of the whole estate — worse, and more urgent, than every anonymity row in this table. Recovery is key rotation, not damage limitation. §4.3. |
+| The auth database _plus_ a corpus of Google subjects       | which of those subjects have accounts          | **Not defended.** The lookup pepper is in the dump, so matching a corpus is one parallel pass, not a per-person cost. Unwrapping any one salt still needs that person's own subject. §4.3.                                                                                                                                                                                                   |
+| Network observer                                           | TLS-encrypted traffic                          | Nothing to add.                                                                                                                                                                                                                                                                                                                                                                              |
+| Reverse-proxy or CDN logs                                  | URLs, IPs, timestamps                          | §7.3 — access logging is disabled for this host. This is the gap most likely to be missed.                                                                                                                                                                                                                                                                                                   |
+| Someone holding _both_ app databases and the auth database | everything                                     | Not defended. Correlation is possible by recomputing the HMACs.                                                                                                                                                                                                                                                                                                                              |
+| The operator                                               | everything, over time                          | Not defended, and cannot be. See below.                                                                                                                                                                                                                                                                                                                                                      |
 
-**The honest limit.** This design minimises what an *attacker*, a *leak*, or a
-*careless future change* can obtain. It does not, and cannot, defend against
+**The honest limit.** This design minimises what an _attacker_, a _leak_, or a
+_careless future change_ can obtain. It does not, and cannot, defend against
 the operator of the service, who can deploy a modified build that records
 whatever it likes. Claiming otherwise would be false. What the design does is
 make the correlating data structurally absent, so that obtaining it requires a
@@ -420,7 +420,7 @@ Three things a normal service would store and this one does not:
   it. Two mechanisms, both added during implementation, are what actually
   bound it:
 
-  - **Tombstoning.** The moment a code is resolved — consumed *or* rejected —
+  - **Tombstoning.** The moment a code is resolved — consumed _or_ rejected —
     the same `UPDATE` that records the outcome sets `app_sub`, `client_id`,
     `redirect_uri`, `nonce`, `code_challenge` and `code_challenge_method` to
     `NULL`. What survives is exactly what replay detection, session
@@ -430,13 +430,14 @@ Three things a normal service would store and this one does not:
     nor, since PKCE landed, betray that it belonged to a public client. This
     is why those six columns are nullable in §5, against the original
     schema.
-  - **A dedicated sweep.** A code that is *abandoned* rather than resolved —
+  - **A dedicated sweep.** A code that is _abandoned_ rather than resolved —
     browser closed, back button, an application backend that never
     exchanges it — has no `UPDATE` coming to tombstone it, so nulling on
     resolution alone would leave it naming an application until the general
     sweep noticed. Codes are therefore swept every 30 seconds, against the
     general sweep's ten minutes (§7.20), which keeps the exposure to the
     code's own sixty-second lifetime plus half a minute.
+
 - **Precise timestamps on accounts.** `accounts.created_at` is rounded to the
   day. A millisecond-precision creation time is a fingerprint that can be
   matched against an app's own first-seen record.
@@ -535,14 +536,14 @@ settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)   -- lookup_pepper
 original design made it a flag and the replay path a single behaviour, which
 cannot express the distinction the delivered service needs:
 
-| value | meaning | on a later presentation |
-|---|---|---|
-| `0` unused | issued, never presented | claimable by its owner |
-| `1` in flight | a presentation is resolving right now | within a five-second grace window, a second presentation is a leak of the code and **deletes the session**; past it, the row is read as a wedge left by a crashed process and its own owner may reclaim it |
-| `2` consumed | exchanged successfully | a replay: **deletes the session** it was issued from (§7.5) |
-| `3` rejected | expired, or the wrong `redirect_uri`, presented by the code's own owner | refused, and **the session is deliberately left alone** — a mismatch is not evidence of a leak, and signing a person out over an application's own misconfiguration would be a denial of service with extra steps |
+| value         | meaning                                                                 | on a later presentation                                                                                                                                                                                           |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0` unused    | issued, never presented                                                 | claimable by its owner                                                                                                                                                                                            |
+| `1` in flight | a presentation is resolving right now                                   | within a five-second grace window, a second presentation is a leak of the code and **deletes the session**; past it, the row is read as a wedge left by a crashed process and its own owner may reclaim it        |
+| `2` consumed  | exchanged successfully                                                  | a replay: **deletes the session** it was issued from (§7.5)                                                                                                                                                       |
+| `3` rejected  | expired, or the wrong `redirect_uri`, presented by the code's own owner | refused, and **the session is deliberately left alone** — a mismatch is not evidence of a leak, and signing a person out over an application's own misconfiguration would be a denial of service with extra steps |
 
-A presentation by a client that does *not* own the code never transitions the
+A presentation by a client that does _not_ own the code never transitions the
 row at all: it is classified and refused, so a third party holding a stolen
 code cannot burn it (§7.4, §7.6).
 
@@ -561,7 +562,7 @@ deleted — is declared and delivered.
 
 **Codes and session tokens are stored hashed.** Read access to the database
 alone does not yield a usable credential — but read access to
-`signing_keys.private_pem` does yield a usable *forgery*, which is a
+`signing_keys.private_pem` does yield a usable _forgery_, which is a
 different sentence and a worse one (§4.3).
 
 **`lookup_pepper` and the signing keys live in the database, not the
@@ -596,7 +597,6 @@ Any error after step 1 redirects to `redirect_uri?error=…&state=…`. Every
 response this route can produce — a redirect carrying a fresh code, or an
 error page — is sent with `Cache-Control: no-store`, so no cache or
 intermediary can replay one later.
-
 
 **L'écran d'introduction — décision inversée après coup.** Le §6 disait « aucune
 page intermédiaire, direct chez Google ». Cette décision supposait que les gens
@@ -659,13 +659,13 @@ Form body: `grant_type=authorization_code`, `code`, `client_id`,
 `client_secret`, `redirect_uri`.
 
 1. Reject any `grant_type` other than `authorization_code` with `400
-   unsupported_grant_type`, before a code or a credential is looked at.
+unsupported_grant_type`, before a code or a credential is looked at.
 2. Authenticate the client: `sha256(secret)` compared with `timingSafeEqual`.
 3. Claim the code with **one guarded `UPDATE`**, requiring `changes === 1`. A
    `SELECT` followed by a `DELETE` leaves a window in which two concurrent
    exchanges both succeed. `[diverged]` — the original design guarded only on
    `used = 0` and checked ownership and expiry afterwards (step 4 below); the
-   delivered statement folds every predicate that decides whether *this*
+   delivered statement folds every predicate that decides whether _this_
    caller may claim the row into the `WHERE` clause — the code hash, the
    owning `client_id`, the exact `redirect_uri`, the expiry, and either
    `used = 0` or an in-flight row old enough to be a crash rather than a race
@@ -736,9 +736,9 @@ before it was fixed (`test/keys-mint-race.test.js`).
 - `GET /healthz` — no database, no network, mounted ahead of everything that
   touches either. It is therefore a **liveness probe and only a liveness
   probe**: it answers "the process is alive" and says nothing about whether
-  the database is healthy. A database broken *at boot* never reaches it —
+  the database is healthy. A database broken _at boot_ never reaches it —
   startup logs a fatal error and exits 1 — while a database that wedges
-  *after* boot is a gap it does not close: every route would 500 while the
+  _after_ boot is a gap it does not close: every route would 500 while the
   container went on reporting healthy. Closing that gap means a database
   round trip on every probe forever, which was judged the worse trade. Stated
   here because it is the kind of thing a reader assumes the other way.
@@ -765,7 +765,7 @@ claim is ever added — there is nothing else to put in it.
 ## 7. Security requirements
 
 Numbered so each becomes a test. Half of the security of an OAuth system lives
-in the *client*, so §7.2 is as binding as §7.1 — an app that skips it is a hole
+in the _client_, so §7.2 is as binding as §7.1 — an app that skips it is a hole
 in the whole estate, not just in itself.
 
 ### 7.1 The service
@@ -774,7 +774,7 @@ in the whole estate, not just in itself.
    allowlist. No prefix, suffix or wildcard matching. A trailing slash, a
    different case, or an added query parameter is a different URI.
 2. An invalid `client_id` or `redirect_uri` renders an error page and never
-   issues a redirect. Redirecting to an unverified URI *is* the open-redirect
+   issues a redirect. Redirecting to an unverified URI _is_ the open-redirect
    vulnerability.
 3. No value taken from the query string is ever rendered into a response body.
    The error page names the failure, never the `client_id` or `redirect_uri`
@@ -789,7 +789,7 @@ in the whole estate, not just in itself.
    §6).
 5. A **replayed** code — presented again after it was successfully consumed,
    or presented twice at once — invalidates the SSO session it was issued
-   from and returns `invalid_grant`. `[diverged]` — a code merely *rejected*
+   from and returns `invalid_grant`. `[diverged]` — a code merely _rejected_
    (expired, wrong `redirect_uri`) must **not** invalidate anything: a
    mismatch is not evidence of a leak. And a row left in flight by a process
    that died mid-exchange must be recoverable by its own owner after a grace
@@ -850,7 +850,7 @@ in the whole estate, not just in itself.
 
 22. The app generates `state` (32 random bytes), stores it in a short-lived
     `HttpOnly` cookie, and rejects a callback whose `state` does not match.
-    Without this, an attacker signs *you* into *their* account.
+    Without this, an attacker signs _you_ into _their_ account.
 23. The app generates a `nonce`, sends it on `/authorize`, and rejects an ID
     token whose `nonce` differs.
 24. The app verifies `iss` equals the auth service, and `aud` equals its own
@@ -881,7 +881,7 @@ in the whole estate, not just in itself.
 ## 8. Resilience
 
 **If the auth service is down, nobody is signed out.** Each app holds its own
-7-day session cookie; only *new* sign-ins fail. This is the correct failure
+7-day session cookie; only _new_ sign-ins fail. This is the correct failure
 mode and it is the reason the service does not need to be highly available.
 
 **Defnote caches the JWKS** and refetches only when it meets an unknown `kid`.
@@ -922,15 +922,15 @@ the question a reader of §3.2 asks next.
 
 Defnote gets smaller, not larger.
 
-| Before | After |
-|---|---|
-| `google-auth-library` dependency | removed |
-| Google Identity Services script in the page | removed |
-| CSP exceptions for `accounts.google.com` | removed — CSP becomes `default-src 'self'` |
-| `users.google_sub` | `users.opsidious_sub` |
-| `verifyGoogleIdToken()` | `exchangeCode()` + `verifyIdToken()` against cached JWKS |
-| `POST /api/auth/google`, `POST /api/auth/google/register` | `GET /auth/start`, `GET /auth/callback` |
-| Landing page renders a Google button widget | Landing page renders a link: "Continuer avec Opsidious" |
+| Before                                                    | After                                                    |
+| --------------------------------------------------------- | -------------------------------------------------------- |
+| `google-auth-library` dependency                          | removed                                                  |
+| Google Identity Services script in the page               | removed                                                  |
+| CSP exceptions for `accounts.google.com`                  | removed — CSP becomes `default-src 'self'`               |
+| `users.google_sub`                                        | `users.opsidious_sub`                                    |
+| `verifyGoogleIdToken()`                                   | `exchangeCode()` + `verifyIdToken()` against cached JWKS |
+| `POST /api/auth/google`, `POST /api/auth/google/register` | `GET /auth/start`, `GET /auth/callback`                  |
+| Landing page renders a Google button widget               | Landing page renders a link: "Continuer avec Opsidious"  |
 
 Unchanged: the `sessions` table and its revocation behaviour, the CSRF scheme,
 the pseudo, and the dev-login route used for local development.
@@ -963,7 +963,7 @@ get there:
 
 **No pseudo form at sign-up.** Defnote assigns a readable pseudo automatically
 (two words from a small curated French list, plus a numeric suffix on
-collision) and lets it be changed in settings. It only *matters* when a tag is
+collision) and lets it be changed in settings. It only _matters_ when a tag is
 published, so Defnote asks for a real one at that moment — where the pseudo
 becomes public and the request makes sense — rather than blocking sign-up on a
 decision nobody has an opinion about yet. Sign-up becomes: click, choose a
@@ -971,7 +971,7 @@ Google account, land in the notebook.
 
 **No interstitial at the auth service.** §6 step 3: straight to Google.
 
-**The token exchange never leaves the host.** Both containers sit on mercury's
+**The token exchange never leaves the host.** Both containers sit on the server's
 `proxy` network, so Defnote calls `http://opsidious-auth:4567/token` and fetches
 the JWKS the same way. No public round trip, no TLS handshake, no dependency on
 the outside world for a sign-in. Browser-facing redirects still use the public
@@ -999,13 +999,13 @@ development databases are deleted; there is nothing in them worth keeping.
 
 New repository `opsidious-auth`, built like Defnote: `node:22-alpine`
 multi-stage image, published to `ghcr.io/theom83/opsidious-auth`, deployed by
-the same SSH step, declared in `mercury/infrastructure/docker-compose.yml`
-behind Traefik on `auth.opsidious.com` with a `opsidious_auth_data` volume and a
+the same SSH step, declared in the server's base compose file
+behind the reverse proxy on `auth.opsidious.com` with a `opsidious_auth_data` volume and a
 host bind mount for backups.
 
 Prerequisites, all of which must exist before first boot:
 
-1. DNS `auth.opsidious.com` → mercury, before the container starts, or the
+1. DNS `auth.opsidious.com` → the server, before the container starts, or the
    Let's Encrypt challenge fails and the domain enters a rate-limited backoff.
 2. A Google OAuth **web application** client with redirect URI
    `https://auth.opsidious.com/callback/google`. Unlike the current Defnote
@@ -1014,15 +1014,15 @@ Prerequisites, all of which must exist before first boot:
    `[diverged]` — this list used to name only the two Google ones, and a
    compose entry built from it **crash-loops on first boot** with
    `PUBLIC_URL must be set`: the variable has no default and the image
-   deliberately does not set one (§7.19). Mercury namespaces its variables
+   deliberately does not set one (§7.19). The base stack namespaces its variables
    per service and the compose file maps them onto the container's own names,
    exactly as it already does for tarkovxyz:
 
-   | mercury `.env` | container env (§7.19) | required |
-   |---|---|---|
+   | server `.env`                         | container env (§7.19)                       | required            |
+   | ------------------------------------- | ------------------------------------------- | ------------------- |
    | — (set directly in the compose entry) | `PUBLIC_URL` = `https://auth.opsidious.com` | **yes, no default** |
-   | `OPSIDIOUS_AUTH_GOOGLE_CLIENT_ID` | `GOOGLE_CLIENT_ID` | yes |
-   | `OPSIDIOUS_AUTH_GOOGLE_CLIENT_SECRET` | `GOOGLE_CLIENT_SECRET` | yes |
+   | `OPSIDIOUS_AUTH_GOOGLE_CLIENT_ID`     | `GOOGLE_CLIENT_ID`                          | yes                 |
+   | `OPSIDIOUS_AUTH_GOOGLE_CLIENT_SECRET` | `GOOGLE_CLIENT_SECRET`                      | yes                 |
 
    The image presets `NODE_ENV`, `PORT`, `DB_PATH` and `BACKUP_DIR`, so those
    need no compose entry unless they are being overridden. Everything else in
@@ -1086,7 +1086,7 @@ The auth service, all offline — Google is behind an injected fetcher, as
 - Key rotation: a token signed by a retired-but-published key still verifies; a
   token signed by an expired-and-swept key does not.
 - Response headers carry `frame-ancestors 'none'`, `Referrer-Policy:
-  no-referrer`, HSTS, and a CSP with no external origin.
+no-referrer`, HSTS, and a CSP with no external origin.
 - No response body echoes the query string: a `client_id` containing markup
   appears nowhere in the error page.
 - `/authorize` with no session issues a `302` to Google and renders nothing.
