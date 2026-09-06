@@ -38,10 +38,22 @@ test('no referrer ever leaves', async () => {
   assert.equal(res.headers['referrer-policy'], 'no-referrer');
 });
 
-test('HSTS is set for a year across subdomains', async () => {
+// Two years, which is what all four Opsidious properties say. The apex sends
+// `includeSubDomains`, so it already binds this host: a shorter value here only
+// raised the question of which one a browser should believe.
+test('HSTS is set for two years across subdomains', async () => {
   const res = await request(app).get('/healthz');
-  assert.match(res.headers['strict-transport-security'], /max-age=31536000/);
+  assert.match(res.headers['strict-transport-security'], /max-age=63072000/);
   assert.match(res.headers['strict-transport-security'], /includeSubDomains/);
+  assert.ok(!/preload/.test(res.headers['strict-transport-security']), 'preload is one-way');
+});
+
+// It was absent, on the one origin where a stray `window.opener` is worth the
+// most. `-allow-popups` and not the strict value: any application may register
+// itself now, and some will open /authorize in a popup.
+test('the sign-in origin severs what it opens, but not what opens it', async () => {
+  const res = await request(app).get('/healthz');
+  assert.equal(res.headers['cross-origin-opener-policy'], 'same-origin-allow-popups');
 });
 
 test('nosniff is set', async () => {

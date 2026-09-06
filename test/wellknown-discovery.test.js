@@ -98,6 +98,18 @@ test('the front door is the only indexable page', async () => {
   assert.match(intro.text, /name="robots" content="noindex"/, 'sign-in must stay out');
 });
 
+// The front door is indexable and is where open registration starts, so it is
+// worth being crawled. Nothing else belongs in here: every other page is
+// somebody's session.
+test('the sitemap lists the front door and nothing else', async () => {
+  const res = await request(app).get('/sitemap.xml');
+  assert.equal(res.status, 200);
+  assert.match(res.headers['content-type'], /xml/);
+  assert.equal((res.text.match(/<loc>/g) || []).length, 1);
+  assert.match(res.text, new RegExp(`<loc>${PUBLIC_URL}/</loc>`));
+  assert.ok(!/authorize|intro|account/.test(res.text), 'a session page is listed');
+});
+
 test('discovery advertises S256 and none', async () => {
   const res = await request(app).get('/.well-known/openid-configuration');
   assert.deepEqual(res.body.code_challenge_methods_supported, ['S256']);

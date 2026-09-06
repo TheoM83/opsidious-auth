@@ -81,9 +81,24 @@ app.use(
     },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: false },
+    // Deux ans, comme les trois autres propriétés de la plateforme. L'apex
+    // envoie `includeSubDomains`, donc il engage déjà ce sous-domaine : dire
+    // autre chose ici ne faisait qu'ouvrir la question de qui a raison.
+    hsts: { maxAge: 63072000, includeSubDomains: true, preload: false },
     crossOriginEmbedderPolicy: false,
-    crossOriginOpenerPolicy: false
+    // `same-origin-allow-popups`, et PAS `same-origin`.
+    //
+    // C'était `false` : un service d'identité est justement l'origine où une
+    // référence `window.opener` qui traîne vaut le plus cher, et c'était la
+    // seule des quatre propriétés à n'envoyer aucun COOP.
+    //
+    // La valeur stricte n'est pas la bonne ici pour autant. Depuis que
+    // l'enregistrement est ouvert (RFC 7591), n'importe quelle application peut
+    // se connecter comme elle l'entend, y compris en ouvrant /authorize dans une
+    // popup - ce que `same-origin` couperait net en cassant son retour. Cette
+    // valeur-ci coupe le lien dans le sens qui compte (ce qu'on ouvre) sans
+    // casser celui qui nous ouvre.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
   })
 );
 

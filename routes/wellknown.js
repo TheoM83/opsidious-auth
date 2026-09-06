@@ -96,4 +96,25 @@ router.get('/', (req, res, next) => {
   }).catch(next);
 });
 
+// One page, so one entry. It exists because the front door became indexable and
+// is the entry point for open registration: an open door nobody can find is
+// open only to whoever was already told about it. Everything else this service
+// serves is somebody's session and carries `noindex`, which is why nothing else
+// is listed here.
+//
+// No `hreflang` alternates: this service has one URL per page and negotiates
+// the language behind it (cookie, then `ui_locales`, then `Accept-Language`).
+// Declaring a French address that does not exist would be a lie told to a robot.
+router.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${PUBLIC_URL}/</loc></url>
+</urlset>
+`
+  );
+});
+
 export default router;
