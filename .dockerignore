@@ -10,3 +10,7 @@ logs
 Dockerfile*
 docker-compose*
 test
+
+# Le rendu des cartes de partage : il produit public/og*.png, qui sont
+# versionnées. Rien de tools/ ne sert à l'exécution.
+tools

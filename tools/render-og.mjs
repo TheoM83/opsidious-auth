@@ -15,7 +15,7 @@ import { spawn } from 'node:child_process';
 import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 // 1200×630 is the size every crawler crops to 1.91:1 without touching it.
 const WIDTH = 1200;
@@ -35,7 +35,9 @@ async function findChrome() {
     try {
       await access(path);
       return path;
-    } catch {}
+    } catch {
+      // Not installed at that path; try the next candidate.
+    }
   }
   throw new Error(`no browser found. Set CHROME=/path/to/chrome.\nLooked in:\n  ${CANDIDATES.join('\n  ')}`);
 }
@@ -47,26 +49,29 @@ async function shoot(chrome, profile, query, out) {
   url.search = query;
 
   await new Promise((resolve, reject) => {
-    const child = spawn(chrome, [
-      '--headless=new',
-      '--disable-gpu',
-      '--hide-scrollbars',
-      `--user-data-dir=${profile}`,
-      `--window-size=${WIDTH},${HEIGHT}`,
-      '--force-device-scale-factor=1',
-      // The card loads its two typefaces over the network, and a screenshot
-      // taken before they arrive is the fallback stack — visibly wrong, and
-      // wrong in a way that only shows up once the card is already live on
-      // somebody else's timeline. Virtual time runs the page's clock forward
-      // and only then captures.
-      '--virtual-time-budget=8000',
-      `--screenshot=${fileURLToPath(out)}`,
-      url.href
-    ], { stdio: 'inherit' });
+    const child = spawn(
+      chrome,
+      [
+        '--headless=new',
+        '--disable-gpu',
+        '--hide-scrollbars',
+        `--user-data-dir=${profile}`,
+        `--window-size=${WIDTH},${HEIGHT}`,
+        '--force-device-scale-factor=1',
+        // The card loads its two typefaces over the network, and a screenshot
+        // taken before they arrive is the fallback stack — visibly wrong, and
+        // wrong in a way that only shows up once the card is already live on
+        // somebody else's timeline. Virtual time runs the page's clock forward
+        // and only then captures.
+        '--virtual-time-budget=8000',
+        `--screenshot=${fileURLToPath(out)}`,
+        url.href
+      ],
+      { stdio: 'inherit' }
+    );
 
     child.on('error', reject);
-    child.on('exit', (code) =>
-      code === 0 ? resolve() : reject(new Error(`browser exited ${code}`)));
+    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`browser exited ${code}`))));
   });
 }
 
@@ -74,7 +79,10 @@ const chrome = await findChrome();
 const profile = await mkdtemp(join(tmpdir(), 'og-'));
 
 try {
-  for (const [query, name] of [['', 'og.png'], ['?lang=fr', 'og-fr.png']]) {
+  for (const [query, name] of [
+    ['', 'og.png'],
+    ['?lang=fr', 'og-fr.png']
+  ]) {
     const out = new URL(`../public/${name}`, import.meta.url);
     await shoot(chrome, profile, query, out);
     console.log(`public/${name}  ${WIDTH}×${HEIGHT}`);
