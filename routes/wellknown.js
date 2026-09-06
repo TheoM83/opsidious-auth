@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { publishedJwks } from '../lib/keys.js';
+import { dbGet } from '../lib/database.js';
+import { requestsLastDay, requestsByHour } from '../lib/traffic.js';
 import { renderPage } from '../lib/render.js';
 import { LOCALES } from '../lib/i18n.js';
 import { ISSUER, PUBLIC_URL, ID_TOKEN_TTL_S, REGISTRATION_ENABLED } from '../lib/config.js';
@@ -94,6 +96,43 @@ router.get('/', (req, res, next) => {
     registrationOpen: REGISTRATION_ENABLED,
     publicUrl: PUBLIC_URL
   }).catch(next);
+});
+
+// Ce que ce service peut compter, et ce qu'il ne peut pas.
+//
+// Il peut dire combien de comptes existent et combien d'applications se sont
+// enregistrées : ce sont des lignes dans ses propres tables. Il ne peut PAS dire
+// combien de personnes utilisent Defnote ou TarkovXYZ — il n'a aucune colonne
+// qui relie un compte à une application, et c'est la garantie centrale de tout
+// le service, pas une lacune. Chaque application publie donc son propre chiffre.
+//
+// Aucun de ces nombres n'est attribuable à quelqu'un : ce sont des COUNT et une
+// somme d'un compteur horaire.
+router.get('/stats', async (req, res, next) => {
+  try {
+    // Court, et `public` : c'est une page de plus à servir depuis le bord, pas
+    // une requête de plus sur la base à chaque visiteur de opsidious.com.
+    res.setHeader('Cache-Control', 'public, max-age=300');
+
+    const [accounts, clients, requests, byHour] = await Promise.all([
+      dbGet('SELECT COUNT(*) AS n FROM accounts'),
+      dbGet('SELECT COUNT(*) AS n FROM clients'),
+      requestsLastDay(),
+      requestsByHour()
+    ]);
+
+    res.json({
+      service: 'opsidious-auth',
+      accounts: accounts?.n || 0,
+      clients: clients?.n || 0,
+      requests24h: requests,
+      byHour,
+      // Dit dans la réponse elle-même, pour que personne n'ait à le déduire.
+      note: 'Aggregate counts only. This service cannot attribute an account to an application.'
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Served by this application rather than left to the edge. Without it the only

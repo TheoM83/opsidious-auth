@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDatabase } from './lib/database.js';
 import { globalLimiter, renderError, attachLocale } from './lib/middleware.js';
+import { countRequest } from './lib/traffic.js';
 import authorizeRoutes from './routes/authorize.js';
 import callbackRoutes from './routes/callback.js';
 import tokenRoutes from './routes/token.js';
@@ -101,6 +102,18 @@ app.use(
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
   })
 );
+
+// Compté avant tout le reste pour que le chiffre soit celui des requêtes
+// REÇUES, pas de celles qui ont survécu au limiteur. Un incrément en mémoire,
+// rien d'autre sur le chemin de la requête, et rien de conservé sur l'appelant.
+//
+// `/healthz` et `/stats` sont exclus : la sonde de la plateforme frappe l'un
+// toutes les quinze minutes et la page d'accueil lit l'autre, donc les inclure
+// reviendrait surtout à mesurer notre propre supervision.
+app.use((req, res, next) => {
+  if (req.path === '/healthz' || req.path === '/stats') return next();
+  return countRequest(req, res, next);
+});
 
 app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.use(express.json({ limit: '16kb' }));

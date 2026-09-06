@@ -9,6 +9,7 @@ import { currentSigner, rotateIfNeeded, sweepExpiredKeys } from './lib/keys.js';
 import { sweepSessions } from './lib/sessions.js';
 import { sweepCodes } from './lib/codes.js';
 import { backupNow, pruneBackups } from './lib/backup.js';
+import { flushTraffic, pruneTraffic } from './lib/traffic.js';
 import {
   PORT,
   PUBLIC_URL,
@@ -74,6 +75,19 @@ async function sweepCodesOnce() {
   }
 }
 
+// Une fois par minute : un compteur en mémoire n'existe que dans le processus,
+// et un conteneur qui redémarre emporterait l'heure en cours. Soixante écritures
+// par heure quoi qu'il arrive, au lieu d'une par requête.
+const TRAFFIC_FLUSH_MS = 60000;
+
+async function trafficOnce() {
+  try {
+    await flushTraffic();
+  } catch (err) {
+    console.error('traffic:', err.message);
+  }
+}
+
 async function backupOnce() {
   // Mirrors sweep()'s try/catch. Neither backupNow nor pruneBackups throws
   // today - both swallow internally - but this function is handed straight
@@ -110,6 +124,10 @@ export function makeShutdown({ server, closeDatabase: close, exit = process.exit
     console.log(`${signal} received, shutting down`);
     server.close(async () => {
       try {
+        // Ce qui est encore en mémoire part dans la base avant de la fermer :
+        // sans ça, la dernière minute de trafic disparaît à chaque déploiement,
+        // et un service qu'on déploie souvent se sous-compte en permanence.
+        await flushTraffic();
         await close();
       } catch (err) {
         console.error('shutdown error:', err.message);
@@ -177,6 +195,12 @@ async function start() {
   await sweepCodesJob();
   const codeSweepTimer = setInterval(sweepCodesJob, CODE_SWEEP_INTERVAL_MS);
   codeSweepTimer.unref();
+
+  // Le compteur horaire. Il tourne toujours : il ne dépend d'aucune
+  // configuration et ne conserve rien sur personne.
+  const trafficTimer = setInterval(trafficOnce, TRAFFIC_FLUSH_MS);
+  trafficTimer.unref();
+  await pruneTraffic();
 
   if (BACKUP_DIR) {
     await backup();
