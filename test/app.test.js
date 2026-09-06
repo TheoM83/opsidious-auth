@@ -56,6 +56,30 @@ test('the sign-in origin severs what it opens, but not what opens it', async () 
   assert.equal(res.headers['cross-origin-opener-policy'], 'same-origin-allow-popups');
 });
 
+// Ces deux fichiers sont de l'API publique : une application tierce écrit leur
+// URL en dur, donc l'adresse ne peut pas porter d'empreinte et un cache long
+// signifie qu'un changement de marque met tout ce temps à sortir. C'est arrivé :
+// le bouton est resté rouge derrière le bord pendant des heures après la
+// bascule. Une heure de fraîcheur, puis service périmé pendant la revalidation.
+test('the embedded brand assets cannot go stale for a day', async () => {
+  for (const path of ['/button.css', '/emblem.svg', '/emblem-mark.svg', '/logo.svg']) {
+    const res = await request(app).get(path);
+    assert.equal(res.status, 200, `${path} must be served`);
+
+    const cache = res.headers['cache-control'];
+    const maxAge = Number((cache.match(/max-age=(\d+)/) || [])[1]);
+    assert.ok(maxAge <= 3600, `${path} caches for ${maxAge}s; a brand change waits that long`);
+    assert.match(cache, /stale-while-revalidate/, `${path} pays the cost without the benefit`);
+
+    // Les deux qui sont embarquées ailleurs doivent rester lisibles depuis une
+    // autre origine ; les deux autres n'ont pas à l'être.
+    if (path === '/button.css' || path === '/emblem.svg') {
+      assert.equal(res.headers['access-control-allow-origin'], '*');
+      assert.equal(res.headers['cross-origin-resource-policy'], 'cross-origin');
+    }
+  }
+});
+
 test('nosniff is set', async () => {
   assert.equal((await request(app).get('/healthz')).headers['x-content-type-options'], 'nosniff');
 });

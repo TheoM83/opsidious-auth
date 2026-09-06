@@ -127,6 +127,20 @@ app.use(globalLimiter);
 // Cache long : ce sont des ressources de marque, pas du contenu. Elles sont
 // aussi les deux SEULES choses que ce service expose à des origines tierces,
 // d'où le CORS explicite et restreint à la lecture.
+// Une heure de fraîcheur, puis service périmé pendant la revalidation.
+//
+// C'était un jour. Ces fichiers portent l'identité visuelle et leur adresse est
+// stable par obligation : une application tierce écrit `/button.css` en dur dans
+// son HTML, donc l'adresse ne peut pas porter d'empreinte — on ne renomme pas
+// une URL que d'autres ont recopiée. Le prix d'un cache long sur une adresse
+// stable, c'est qu'un changement de marque met tout ce temps à sortir : la
+// bascule du rouge au bleu est restée invisible des heures derrière un
+// `cf-cache-status: HIT`, sur le bouton même qui demande de faire confiance.
+//
+// `stale-while-revalidate` garde le bénéfice — le visiteur est toujours servi
+// instantanément depuis le bord — en ramenant la propagation à l'heure.
+const BRAND_CACHE = 'public, max-age=3600, stale-while-revalidate=86400';
+
 app.use(
   '/button.css',
   (req, res, next) => {
@@ -137,7 +151,7 @@ app.use(
     // l'en-tête ci-dessus. Ces deux fichiers sont les seuls à être relâchés,
     // et ce sont deux ressources de marque publiques.
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', BRAND_CACHE);
     next();
   },
   express.static(join(here, 'client', 'button.css'))
@@ -152,12 +166,25 @@ app.use(
     // l'en-tête ci-dessus. Ces deux fichiers sont les seuls à être relâchés,
     // et ce sont deux ressources de marque publiques.
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', BRAND_CACHE);
     next();
   },
   express.static(join(here, 'public', 'emblem.svg'))
 );
 
+// Les autres marques. Elles ne sortent pas de l'origine — c'est le gabarit
+// d'ici qui les affiche — donc ni CORS ni CORP, mais elles portent la couleur
+// de la marque exactement comme les deux du dessus. Sans cette ligne elles
+// tombaient dans le `7d` générique plus bas : au changement d'accent, le bouton
+// public serait passé au bleu pendant que l'emblème en tête des pages de ce
+// service serait resté rouge une semaine.
+app.use(/^\/(emblem-mark|logo)\.svg$/, (req, res, next) => {
+  res.setHeader('Cache-Control', BRAND_CACHE);
+  next();
+});
+
+// Tout le reste : une semaine. Ce sont des icônes et des PNG dont l'adresse ne
+// change pas mais dont le contenu ne bouge pas non plus.
 app.use(express.static(join(here, 'public'), { maxAge: '7d' }));
 
 // Route modules are mounted here as later tasks add them:
