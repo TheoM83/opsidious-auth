@@ -1065,3 +1065,34 @@ footer a:hover {
     transform: none;
   }
 }
+
+/* ── Ce que ce service ne défend pas ────────────────────────────────────
+   Découpée DANS la page plutôt que posée dessus : c'est la seule section qui
+   parle de ce qui manque, et elle doit se lire comme telle. Le liseré prend
+   `--alert`, pas `--brand` : c'est le seul endroit de cette page où un lecteur
+   a une raison de s'arrêter. */
+.limits {
+  margin-top: clamp(40px, 6vw, 68px);
+  padding: clamp(22px, 3vw, 32px) clamp(20px, 3vw, 30px);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-left: 2px solid color-mix(in srgb, var(--alert) 55%, var(--line));
+}
+.limit-list {
+  margin: 22px 0 0;
+}
+.limit-list dt {
+  margin-top: 20px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.limit-list dt:first-child { margin-top: 0; }
+.limit-list dd {
+  margin: 8px 0 0;
+  max-width: 68ch;
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--muted);
+}

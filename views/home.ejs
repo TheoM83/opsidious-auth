@@ -139,5 +139,24 @@
     </ul>
   </div>
 
+  <%# Ce que le service NE défend PAS.
+      Cette section vivait sur opsidious.com, où elle occupait un tiers d'une
+      page d'accueil qui redisait déjà ce service. Elle est ici parce que c'est
+      ici qu'on la cherche : à côté du document de conception, sur la page qu'un
+      développeur lit avant de brancher son application.
+      Un document de sécurité qui promet plus qu'il ne tient vaut moins qu'un
+      document qui promet moins. %>
+  <div class="limits">
+    <h3 class="sub-h"><%= t('home.limitsTitle') %></h3>
+    <p class="band-note"><%= t('home.limitsLede') %></p>
+
+    <dl class="limit-list">
+      <% ['key', 'pair', 'open', 'operator'].forEach(function (k) { %>
+        <dt><%= t('home.limits.' + k + 'H') %></dt>
+        <dd><%= t('home.limits.' + k + 'P') %></dd>
+      <% }); %>
+    </dl>
+  </div>
+
   <p class="band-note foot-note"><%= t('home.footerNote') %></p>
 </section>

@@ -83,6 +83,29 @@ export default {
     openCurl: 'Register an application:',
     openReturns:
       'The secret is returned once, in that response, and never again. A public client — desktop, mobile, single-page — sends {method} instead and proves itself with PKCE.',
+    // ── Ce que ce service ne défend pas ────────────────────────────────
+    // Sans balisage, comme tout ce catalogue : les gabarits échappent, donc une
+    // traduction ne peut jamais ouvrir une balise. L'emphase du site plateforme
+    // (« structurellement absente ») disparaît donc ici, et la phrase tient
+    // sans elle.
+    limitsTitle: 'What this does not defend',
+    limitsLede:
+      'A security document that claims more than it delivers is worse than one that claims less. These are stated as plainly as the guarantees above, and at more length in the design document.',
+    limits: {
+      keyH: 'A dump of the database forges tokens.',
+      keyP:
+        'The signing key has to be reachable by the process that signs, so whoever holds the file can mint a token with any subject and any audience, and every registered application will accept it. That is true of every identity provider. It is written down anyway, with the key-rotation procedure next to it.',
+      pairH: 'Holding two databases at once breaks the pairwise property.',
+      pairP:
+        'The identifier is a deterministic function — it has to be, or signing back in would not return you to your own account. Someone with both this database and an application’s can recompute it and prove the two share users. Nothing in this design stops that, and nothing could.',
+      openH: 'Open registration is open to bad applications too.',
+      openP:
+        'Anyone can register, so a hostile application can too — and it gets exactly what an honest one gets: a subject that is useless anywhere else. What it does not get is a way to reach you, a way to find you in another application, or any standing with this service. The sign-in screen never displays a name an application chose, precisely so it cannot be used to impersonate one.',
+      operatorH: 'The operator is not defended against.',
+      operatorP:
+        'Whoever runs the service can deploy a build that records whatever it likes, and no code can defend against whoever supplies it. What the design does instead is make the correlating data structurally absent: there is no column for it, so collecting it takes a deliberate, visible, auditable change rather than reading a table that was already there.'
+    },
+
     discoveryTitle: 'Discovery',
     docsLink: 'Design document',
 

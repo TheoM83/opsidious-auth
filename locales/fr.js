@@ -79,6 +79,27 @@ export default {
     openCurl: 'Enregistrer une application :',
     openReturns:
       'Le secret est renvoyé une seule fois, dans cette réponse, et jamais ensuite. Un client public — bureau, mobile, page unique — envoie {method} à la place et se prouve par PKCE.',
+    // ── Ce que ce service ne défend pas ────────────────────────────────
+    // Sans balisage : les gabarits échappent tout, donc une traduction ne peut
+    // jamais ouvrir une balise.
+    limitsTitle: 'Ce que ceci ne défend pas',
+    limitsLede:
+      'Un document de sécurité qui promet plus qu’il ne tient vaut moins qu’un document qui promet moins. Ces points sont énoncés aussi nettement que les garanties ci-dessus, et plus longuement dans le document de conception.',
+    limits: {
+      keyH: 'Une copie de la base permet de forger des jetons.',
+      keyP:
+        'La clé de signature doit être atteignable par le processus qui signe : qui détient le fichier peut frapper un jeton portant n’importe quel sujet et n’importe quelle audience, et toutes les applications enregistrées l’accepteront. C’est vrai de tout fournisseur d’identité. C’est écrit ici quand même, avec la procédure de rotation juste à côté.',
+      pairH: 'Détenir deux bases à la fois casse la propriété pairwise.',
+      pairP:
+        'L’identifiant est une fonction déterministe — il doit l’être, sinon vous reconnecter ne vous rendrait pas votre propre compte. Qui possède à la fois cette base et celle d’une application peut le recalculer et prouver que les deux partagent des utilisateurs. Rien dans ce design ne l’empêche, et rien ne le pourrait.',
+      openH: 'Un enregistrement ouvert est ouvert aux mauvaises applications aussi.',
+      openP:
+        'N’importe qui peut s’enregistrer, donc une application hostile le peut aussi — et elle obtient exactement ce qu’obtient une application honnête : un sujet inutilisable ailleurs. Ce qu’elle n’obtient pas : un moyen de vous joindre, un moyen de vous retrouver dans une autre application, ou le moindre crédit auprès de ce service. L’écran de connexion n’affiche jamais un nom choisi par une application, précisément pour qu’il ne serve pas à en usurper une.',
+      operatorH: 'L’exploitant n’est pas un adversaire contre lequel on se défend.',
+      operatorP:
+        'Qui fait tourner le service peut déployer une version qui enregistre ce qu’elle veut, et aucun code ne défend contre la source du code qui s’exécute. Ce que fait le design à la place : rendre la donnée de corrélation structurellement absente. Il n’y a pas de colonne pour elle, donc la collecter demande un changement délibéré, visible et auditable, plutôt que la lecture d’une table déjà présente.'
+    },
+
     discoveryTitle: 'Découverte',
     docsLink: 'Document de conception',
 
