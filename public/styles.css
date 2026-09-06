@@ -52,8 +52,16 @@
      Red stays as `--alert`, and only ever marks something a reader should
      actually stop at: the one stored field that discloses anything, the
      account-deletion block, and an error. That is what makes it legible. */
+  /* --mark  is the identity: the hexagon and the bar through it are the
+             Opsidious logo, and a logo is not a status. It keeps the red it has
+             always had — including inside other people's applications, where
+             the sign-in button carries it.
+     --brand is the interface: links, rules, emphasis.
+     --alert is a fact the reader should stop at. Same hex as the mark and a
+             different job, which holds because a logo never moves. */
+  --mark: #ef4444;
   --brand: #78a9ff;
-  --alert: #78a9ff;
+  --alert: #ef4444;
   --shadow: #000;
   /* Drawn on top of --text, which is the one light surface the service has. */
   --on-light: #18181b;
@@ -210,7 +218,7 @@ h1 {
 
 .g-hex {
   fill: none;
-  stroke: color-mix(in srgb, var(--brand) 62%, transparent);
+  stroke: color-mix(in srgb, var(--mark) 62%, transparent);
   stroke-width: 1.4;
 }
 .g-hex-in {
@@ -219,12 +227,12 @@ h1 {
   stroke-width: 1;
 }
 .g-bar-soft {
-  fill: var(--brand);
+  fill: var(--mark);
   opacity: 0.24;
 }
 .g-bar,
 .g-tick {
-  fill: var(--brand);
+  fill: var(--mark);
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
