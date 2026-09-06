@@ -62,7 +62,10 @@ test('the sign-in origin severs what it opens, but not what opens it', async () 
 // le bouton est resté rouge derrière le bord pendant des heures après la
 // bascule. Une heure de fraîcheur, puis service périmé pendant la revalidation.
 test('the embedded brand assets cannot go stale for a day', async () => {
-  for (const path of ['/button.css', '/emblem.svg', '/emblem-mark.svg', '/logo.svg']) {
+  // Seulement les deux qu'une application tierce écrit en dur : leur adresse ne
+  // peut pas porter d'empreinte, puisqu'on ne renomme pas une URL que d'autres
+  // ont recopiée. Nos propres marques passent par asset() et sont immuables.
+  for (const path of ['/button.css', '/emblem.svg']) {
     const res = await request(app).get(path);
     assert.equal(res.status, 200, `${path} must be served`);
 
@@ -73,10 +76,8 @@ test('the embedded brand assets cannot go stale for a day', async () => {
 
     // Les deux qui sont embarquées ailleurs doivent rester lisibles depuis une
     // autre origine ; les deux autres n'ont pas à l'être.
-    if (path === '/button.css' || path === '/emblem.svg') {
-      assert.equal(res.headers['access-control-allow-origin'], '*');
-      assert.equal(res.headers['cross-origin-resource-policy'], 'cross-origin');
-    }
+    assert.equal(res.headers['access-control-allow-origin'], '*');
+    assert.equal(res.headers['cross-origin-resource-policy'], 'cross-origin');
   }
 });
 
@@ -105,4 +106,33 @@ test('the error page never echoes the query string', async () => {
   assert.ok(!res.text.includes('<script>alert(1)</script>'));
   assert.ok(!res.text.includes('hunter2'));
   assert.ok(!res.text.includes('client_id'));
+});
+
+// Le défaut qui a rendu tout un changement de design invisible : `/styles.css`
+// était servi sous une adresse fixe avec `max-age=604800`. L'origine servait la
+// nouvelle feuille et tout navigateur passé dans la semaine gardait l'ancienne
+// — mesuré en production, même URL, `--brand: #ef4444` sans paramètre et
+// `#78a9ff` avec.
+test('la feuille de style porte une empreinte, et elle est immuable', async () => {
+  const page = await request(app).get('/');
+  const lien = page.text.match(/href="(\/styles\.css\?v=[a-f0-9]+)"/);
+  assert.ok(lien, 'la page doit pointer une adresse empreintée');
+
+  const empreintee = await request(app).get(lien[1]);
+  assert.equal(empreintee.status, 200);
+  assert.match(
+    empreintee.headers['cache-control'],
+    /max-age=31536000.*immutable/,
+    'sous cette adresse le contenu ne peut plus changer : la sceller est sans risque'
+  );
+
+  // L'adresse nue doit rester révisable, sinon on retombe exactement dans le
+  // défaut d'origine.
+  const nue = await request(app).get('/styles.css');
+  assert.equal(nue.headers['cache-control'], 'no-cache');
+
+  // Et une empreinte périmée aussi : c'est le cas d'un onglet resté ouvert
+  // pendant un déploiement.
+  const perimee = await request(app).get('/styles.css?v=0000000000');
+  assert.equal(perimee.headers['cache-control'], 'no-cache');
 });

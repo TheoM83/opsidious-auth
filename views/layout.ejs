@@ -40,9 +40,13 @@
     <% } %>
     <meta name="theme-color" content="#0b0b0e" />
     <link rel="icon" href="/emblem.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon-32.png" sizes="32x32" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="<%= asset('/favicon-32.png') %>" sizes="32x32" />
+    <link rel="apple-touch-icon" href="<%= asset('/apple-touch-icon.png') %>" />
+    <%# L'adresse porte l'empreinte du contenu : un déploiement qui change la
+        feuille change l'adresse, donc un navigateur ne peut plus servir
+        l'ancienne. C'est ce qui a rendu le passage du rouge au bleu invisible
+        pendant des heures — même URL, cache de sept jours. %>
+    <link rel="stylesheet" href="<%= asset('/styles.css') %>" />
   </head>
   <body>
     <a class="skip" href="#main"><%= t('layout.skip') %></a>
@@ -53,7 +57,7 @@
         reste vraie. %>
     <header class="topbar">
       <a class="brand" href="/" aria-label="<%= t('common.homeAria') %>">
-        <img src="/emblem-mark.svg" alt="" width="22" height="22" />
+        <img src="<%= asset('/emblem-mark.svg') %>" alt="" width="22" height="22" />
         <span><%= t('common.brand') %></span>
       </a>
     </header>

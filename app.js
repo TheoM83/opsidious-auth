@@ -4,11 +4,12 @@ import express from 'express';
 import compression from 'compression';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDatabase } from './lib/database.js';
 import { globalLimiter, renderError, attachLocale } from './lib/middleware.js';
 import { countRequest } from './lib/traffic.js';
+import { makeAssetUrl, cacheControlPour, VERSION_PARAM } from './lib/assets.js';
 import authorizeRoutes from './routes/authorize.js';
 import callbackRoutes from './routes/callback.js';
 import tokenRoutes from './routes/token.js';
@@ -18,6 +19,12 @@ import registerRoutes from './routes/register.js';
 import langRoutes from './routes/lang.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = join(here, 'public');
+
+// Écrit dans les gabarits : `asset('/styles.css')` rend `/styles.css?v=<hash>`.
+// Un déploiement qui change le fichier change l'adresse, donc l'ancienne
+// réponse en cache n'est plus jamais demandée.
+const asset = makeAssetUrl(PUBLIC_DIR);
 
 export const app = express();
 
@@ -124,6 +131,14 @@ app.use(cookieParser());
 // the person was asking for.
 app.use(attachLocale);
 
+// L'empreinte de la feuille de style, disponible dans tous les gabarits. Elle
+// est calculée une fois et mise en cache par lib/assets.js ; ce n'est pas une
+// lecture de fichier par requête.
+app.use((req, res, next) => {
+  res.locals.asset = asset;
+  next();
+});
+
 // Registered before anything else so a broken database still reports the
 // process as alive.
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
@@ -185,20 +200,21 @@ app.use(
   express.static(join(here, 'public', 'emblem.svg'))
 );
 
-// Les autres marques. Elles ne sortent pas de l'origine — c'est le gabarit
-// d'ici qui les affiche — donc ni CORS ni CORP, mais elles portent la couleur
-// de la marque exactement comme les deux du dessus. Sans cette ligne elles
-// tombaient dans le `7d` générique plus bas : au changement d'accent, le bouton
-// public serait passé au bleu pendant que l'emblème en tête des pages de ce
-// service serait resté rouge une semaine.
-app.use(/^\/(emblem-mark|logo)\.svg$/, (req, res, next) => {
-  res.setHeader('Cache-Control', BRAND_CACHE);
-  next();
-});
-
-// Tout le reste : une semaine. Ce sont des icônes et des PNG dont l'adresse ne
-// change pas mais dont le contenu ne bouge pas non plus.
-app.use(express.static(join(here, 'public'), { maxAge: '7d' }));
+// Le reste de /public, avec le cache décidé par l'empreinte demandée.
+//
+// C'était `maxAge: '7d'` sur des adresses qui ne changent jamais, et le défaut
+// s'est vu en production : le passage du rouge au bleu était servi correctement
+// par l'origine et invisible pour quiconque avait visité le service dans la
+// semaine. Une adresse portant l'empreinte du contenu ne peut plus servir autre
+// chose, donc elle se met en cache pour un an ; une adresse nue revalide.
+app.use(
+  express.static(PUBLIC_DIR, {
+    setHeaders(res, filePath) {
+      const urlPath = '/' + relative(join(here, 'public'), filePath).split(sep).join('/');
+      res.setHeader('Cache-Control', cacheControlPour(PUBLIC_DIR, urlPath, res.req.query?.[VERSION_PARAM]));
+    }
+  })
+);
 
 // Route modules are mounted here as later tasks add them:
 app.use(authorizeRoutes);
