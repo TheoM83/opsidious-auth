@@ -40,7 +40,20 @@
      prose. They moved to `--muted`; the token went with them rather than
      staying declared as an invitation to make that mistake again. A
      hairline that needs a colour uses `--line`. */
-  --brand: #ef4444;
+  /* IBM Carbon blue-40. It is the family this service's typeface belongs to,
+     and it reads 8.35:1 on this ground against the old red's 5.22:1.
+
+     The red is gone as a resting colour deliberately. This is the page where
+     somebody decides whether to hand over a sign-in, and a page that is red
+     before anything has happened looks like something has gone wrong. An alarm
+     that is always on is either ignored or believed, and neither is what this
+     service wants from the person reading it.
+
+     Red stays as `--alert`, and only ever marks something a reader should
+     actually stop at: the one stored field that discloses anything, the
+     account-deletion block, and an error. That is what makes it legible. */
+  --brand: #78a9ff;
+  --alert: #78a9ff;
   --shadow: #000;
   /* Drawn on top of --text, which is the one light surface the service has. */
   --on-light: #18181b;
@@ -790,14 +803,14 @@ h1 {
 /* The one field that discloses something says so out loud, instead of being
    buried among the reassuring ones. */
 .field--reveals .verdict {
-  color: var(--brand);
+  color: var(--alert);
 }
 .verdict-mark {
   display: inline-block;
   width: 6px;
   height: 6px;
   margin-right: 9px;
-  background: var(--brand);
+  background: var(--alert);
   transform: rotate(45deg);
   vertical-align: 1px;
 }
@@ -880,7 +893,7 @@ h1 {
 .act-text .warn {
   margin-top: 12px;
   padding-left: 14px;
-  border-left: 2px solid color-mix(in srgb, var(--brand) 45%, var(--line));
+  border-left: 2px solid color-mix(in srgb, var(--alert) 45%, var(--line));
   color: var(--note);
 }
 
@@ -912,14 +925,14 @@ h1 {
   padding: clamp(28px, 4vw, 40px);
   border: 1px solid var(--line);
   background: var(--sunk);
-  border-left: 2px solid var(--brand);
+  border-left: 2px solid var(--alert);
 }
 .err-code {
   margin: 0 0 10px;
   font-family: var(--mono);
   font-size: 12px;
   letter-spacing: 0.2em;
-  color: var(--brand);
+  color: var(--alert);
 }
 .panel--error h1 {
   margin: 0 0 18px;
