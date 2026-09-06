@@ -9,13 +9,20 @@
  *   <link rel="stylesheet" href="https://auth.opsidious.com/button.css">
  *   <a class="opsid-signin" href="/auth/opsidious">Continuer avec Opsidious</a>
  *
- * L'accent ne sert jamais de fond à du texte : il vit dans l'emblème et dans
- * le filet, là où il porte l'identité sans avoir à être lu.
+ * Deux couleurs, et elles ne disent pas la même chose.
  *
- * C'était un vermillon. Il a changé pour un bleu (#78A9FF) parce qu'un bouton
- * de connexion rouge dit « attention » à l'instant précis où il demande à
- * quelqu'un de faire confiance. Ce bouton atterrit dans des applications
- * tierces : il doit y être le repère rassurant, pas l'avertissement.
+ * L'emblème est ROUGE (#EF4444) : c'est la marque Opsidious, et une marque se
+ * reconnaît. C'est même ici qu'elle compte le plus, puisque ce bouton atterrit
+ * dans des applications tierces où il est parfois la seule chose d'Opsidious
+ * que quelqu'un verra jamais.
+ *
+ * Le filet et l'anneau de focus sont BLEUS (#78A9FF) : c'est de l'interface.
+ * Tout le bouton avait viré au bleu un temps, sur l'idée qu'un bouton de
+ * connexion rouge dit « attention » à l'instant où il demande de faire
+ * confiance. L'idée était juste pour l'interface et fausse pour la marque :
+ * repeindre le logo ne l'a pas rendu rassurant, ça l'a rendu méconnaissable.
+ *
+ * Ni l'un ni l'autre ne sert jamais de fond à du texte.
  *
  * Tout est préfixé `opsid-` : cette feuille atterrit dans des pages qui ont
  * déjà la leur, et rien ici ne doit déborder.

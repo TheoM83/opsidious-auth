@@ -16,6 +16,7 @@
     --text: #f4f4f6;
     --note: #7e7e8a;
     --faint: #45454e;
+    --mark: #ef4444;
     --brand: #78a9ff;
     --mono: "IBM Plex Mono", ui-monospace, monospace;
 
@@ -59,9 +60,9 @@
     height: 300px;
   }
   .mark svg { display: block; width: 100%; height: 100%; }
-  .g-hex { fill: none; stroke: color-mix(in srgb, var(--brand) 58%, transparent); stroke-width: 1.4; }
+  .g-hex { fill: none; stroke: color-mix(in srgb, var(--mark) 58%, transparent); stroke-width: 1.4; }
   .g-hex-in { fill: none; stroke: var(--line); stroke-width: 1; }
-  .g-tick { fill: color-mix(in srgb, var(--brand) 78%, transparent); }
+  .g-tick { fill: color-mix(in srgb, var(--mark) 78%, transparent); }
 
   /* Drawn after the mark, so it passes in front of the hexagon. */
   .cut-soft {
@@ -71,8 +72,8 @@
     height: 18px;
     background: linear-gradient(to right,
       transparent 0%,
-      color-mix(in srgb, var(--brand) 10%, transparent) 55%,
-      color-mix(in srgb, var(--brand) 22%, transparent) 100%);
+      color-mix(in srgb, var(--mark) 10%, transparent) 55%,
+      color-mix(in srgb, var(--mark) 22%, transparent) 100%);
   }
   .cut {
     position: absolute;
@@ -80,10 +81,10 @@
     top: var(--cut-y);
     height: 2px;
     background: linear-gradient(to right,
-      color-mix(in srgb, var(--brand) 14%, transparent) 0%,
-      color-mix(in srgb, var(--brand) 62%, transparent) 34%,
-      var(--brand) 68%,
-      var(--brand) 100%);
+      color-mix(in srgb, var(--mark) 14%, transparent) 0%,
+      color-mix(in srgb, var(--mark) 62%, transparent) 34%,
+      var(--mark) 68%,
+      var(--mark) 100%);
   }
 
   /* Everything readable sits clear of the cut: the headline above it, the
