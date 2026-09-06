@@ -103,6 +103,26 @@ jobs:
           # les secrets voyagent.
           set -euo pipefail
 
+          # Les trois secrets de deploiement, nommes quand ils manquent.
+          #
+          # Sans cette garde, un secret vide s'ecrit dans un fichier de cle vide,
+          # `ssh-keyscan -H ""` part sur un hote vide et son erreur est avalee
+          # par le `2>/dev/null` qui suit -- le run finit sur un `exit code 255`
+          # nu, qui ne nomme rien. La regle est la meme que pour les secrets
+          # applicatifs plus bas : nommer le secret absent coute trois lignes et
+          # transforme une enigme en instruction. Reprise d'opsidious, ou le tout
+          # premier run avait echoue exactement comme ca.
+          for nom in SSH_KEY SSH_HOST SSH_USER; do
+            # Expansion indirecte, pas `eval` : la valeur est une cle privee, et
+            # `eval` la ferait repasser par une seconde analyse du shell.
+            if [ -z "${!nom:-}" ]; then
+              echo "Le secret de deploiement derriere $nom est vide ou absent." >&2
+              echo "SSH_KEY=SSH_PRIVATE_KEY, SSH_HOST=SERVER_HOST, SSH_USER=SERVER_USERNAME." >&2
+              echo "Creez-les dans Settings > Secrets and variables > Actions." >&2
+              exit 1
+            fi
+          done
+
           # Sans MASTER_KEY, le service refuse de demarrer en production - et il
           # a raison : sans elle, la cle de signature et le pepper seraient
           # ecrits en clair, et une sauvegarde suffirait a forger un jeton pour

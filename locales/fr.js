@@ -17,14 +17,17 @@ export default {
   },
 
   home: {
-    title: 'Opsidious',
+    // Le gabarit ajoute « — Opsidious » à tout titre qui n'est pas déjà la
+    // marque seule : celui-ci dit donc ce QU'EST le service. C'était
+    // « Opsidious », un mot sans affirmation dans un onglet ou un résultat.
+    title: 'Connexion anonyme pour n’importe quelle application',
     eyebrow: 'Service d’identité',
     h1: 'Une identité qui ne vous suit pas.',
     lede: 'Vous vous connectez avec Google. Ce service ne reçoit ni votre e-mail, ni votre nom — seulement un identifiant opaque, qu’il ne conserve pas non plus.',
 
     chainTitle: 'Qui voit quoi',
     chainNote:
-      'Chaque partie dit ce qu’elle voit et ce qu’elle ne voit pas. La seconde moitié est celle qui compte : c’est elle qui distingue ceci d’une connexion Google ordinaire. « Anonyme » ne vaut rien tout seul — tous les services l’emploient. Ceci se vérifie.',
+      'Chaque partie dit ce qu’elle voit et ce qu’elle ne voit pas. La seconde moitié est celle qui compte : c’est elle qui distingue ceci d’une connexion Google ordinaire. « Anonyme » ne vaut rien tout seul — tous les services l’emploient. Ceci se vérifie.',
     sees: 'Voit',
     blind: 'Ne peut pas voir',
     parties: {
@@ -72,15 +75,21 @@ export default {
       'N’importe quelle application peut utiliser ce service. Personne à qui demander, aucun formulaire, rien à déclarer.',
     openTitle: 'L’enregistrement est ouvert',
     openBody:
-      'Une application publie un nom et une URI de redirection, et reçoit ses identifiants. Aucun opérateur dans la boucle, aucun e-mail, aucun compte, aucune validation. Ce n’est pas un relâchement du design : c’est ce que le design impliquait depuis le début. Une application qui s’enregistre apprend une chose d’une personne qui se connecte, et cette chose ne signifie rien dans toutes les autres applications — y compris les autres qu’enregistrerait le même auteur.',
-    openCurl: 'Enregistrer une application :',
+      'Une application publie un nom et une URI de redirection, et reçoit ses identifiants. Aucun opérateur dans la boucle, aucun e-mail, aucun compte, aucune validation. Ce n’est pas un relâchement du design : c’est ce que le design impliquait depuis le début. Une application qui s’enregistre apprend une chose d’une personne qui se connecte, et cette chose ne signifie rien dans toutes les autres applications — y compris les autres qu’enregistrerait le même auteur.',
+    openCurl: 'Enregistrer une application :',
     openReturns:
       'Le secret est renvoyé une seule fois, dans cette réponse, et jamais ensuite. Un client public — bureau, mobile, page unique — envoie {method} à la place et se prouve par PKCE.',
     discoveryTitle: 'Découverte',
     docsLink: 'Document de conception',
 
+    // Voyage seul, sur une carte dans le fil de quelqu'un d'autre.
+    shareDescription:
+      'Vous vous connectez avec Google. Ce service ne reçoit ni votre e-mail ni votre nom, et chaque application reçoit un identifiant différent pour la même personne.',
+    shareImageAlt:
+      'Opsidious Auth — une identité qui ne vous suit pas.',
+
     footerNote:
-      'Construit et exploité par une seule personne. Le code est public : les affirmations ci-dessus se lisent au lieu de se croire.'
+      'Construit et exploité par une seule personne. Le code est public : les affirmations ci-dessus se lisent au lieu de se croire.'
   },
 
   intro: {
@@ -101,19 +110,19 @@ export default {
 
     fields: {
       id: {
-        shape: 'UUID aléatoire, 122 bits',
+        shape: 'UUID aléatoire, 122 bits',
         kind: 'Identifiant interne. Aucune application ne le reçoit jamais.'
       },
       googleSubHash: {
-        shape: 'HMAC-SHA256, 32 octets',
+        shape: 'HMAC-SHA256, 32 octets',
         kind: 'Votre identifiant Google, passé dans un HMAC sous une clé propre à ce serveur. L’identifiant lui-même n’est écrit nulle part.'
       },
       kdfSalt: {
-        shape: '16 octets aléatoires',
+        shape: '16 octets aléatoires',
         kind: 'Sert à dériver la clé qui scelle le champ suivant.'
       },
       sealedSalt: {
-        shape: '60 octets — 12 (IV) + 16 (auth) + 32 (sel)',
+        shape: '60 octets — 12 (IV) + 16 (auth) + 32 (sel)',
         kind: 'Votre sel pairwise, scellé sous une clé que ce serveur ne conserve jamais. Il ne s’ouvre qu’au moment où vous vous connectez.'
       },
       createdAt: {
@@ -137,7 +146,7 @@ export default {
     },
     cannotLead: 'Nous ne pouvons pas vous dire quelles applications vous utilisez.',
     cannotBody:
-      'Chacune vous connaît sous un identifiant différent, calculé à la volée et jamais enregistré. Aucune table, ici, ne relie votre compte à une application. Cette page ne vous cache pas cette liste : elle n’existe pas.',
+      'Chacune vous connaît sous un identifiant différent, calculé à la volée et jamais enregistré. Aucune table, ici, ne relie votre compte à une application. Cette page ne vous cache pas cette liste : elle n’existe pas.',
 
     actsTitle: 'Agir',
     logoutTitle: 'Se déconnecter',

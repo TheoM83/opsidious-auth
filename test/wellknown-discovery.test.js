@@ -78,6 +78,26 @@ test('the front door is a page, not a 404', async () => {
   assert.match(res.text, /\/account/);
 });
 
+// The front door is the ONE page here a search engine should hold: the whole
+// design is that any application may register without asking anyone, and an
+// open door nobody can find is open only to those who were told about it. Every
+// other page is somebody's session, and the layout excludes those by default -
+// which is why this test also checks the negative.
+test('the front door is the only indexable page', async () => {
+  const home = await request(app).get('/');
+  assert.ok(!/name="robots"[^>]*noindex/.test(home.text), 'the home page excludes itself');
+  assert.match(home.text, /<meta name="description" content="[^"]{40,}"/);
+  assert.match(home.text, /rel="canonical"/);
+  assert.match(home.text, /property="og:image" content="[^"]+og\.png"/);
+  assert.match(home.text, /name="twitter:card" content="summary_large_image"/);
+  // A title that is only the brand says nothing in a tab strip or a result.
+  const title = home.text.match(/<title>([^<]*)<\/title>/);
+  assert.ok(title && title[1].length > 'Opsidious'.length + 8, `weak title: ${title && title[1]}`);
+
+  const intro = await request(app).get('/intro');
+  assert.match(intro.text, /name="robots" content="noindex"/, 'sign-in must stay out');
+});
+
 test('discovery advertises S256 and none', async () => {
   const res = await request(app).get('/.well-known/openid-configuration');
   assert.deepEqual(res.body.code_challenge_methods_supported, ['S256']);

@@ -28,7 +28,9 @@ import { randomToken } from '../lib/crypto.js';
 import {
   REGISTRATION_ENABLED,
   REGISTER_RATE_LIMIT_WINDOW_MS,
-  REGISTER_RATE_LIMIT_MAX
+  REGISTER_RATE_LIMIT_MAX,
+  REGISTER_GLOBAL_WINDOW_MS,
+  REGISTER_GLOBAL_MAX
 } from '../lib/config.js';
 
 const router = Router();
@@ -44,10 +46,28 @@ const registerLimiter = rateLimit({
   message: { error: 'too_many_requests' }
 });
 
+// The ceiling, keyed on nothing. An IPv6 /64 gives one attacker eighteen
+// quintillion distinct keys for the limiter above, so a per-address rule alone
+// bounds nobody: this is what actually bounds the table. It is checked FIRST,
+// so a flood spread across addresses is refused before the per-address rule
+// has to recognise anything.
+//
+// It is deliberately a blunt instrument, and it can be reached by honest
+// traffic - at which point new registrations wait an hour and everything
+// already registered carries on, because nothing else routes through here.
+const ceilingLimiter = rateLimit({
+  windowMs: REGISTER_GLOBAL_WINDOW_MS,
+  limit: REGISTER_GLOBAL_MAX,
+  standardHeaders: false,
+  legacyHeaders: false,
+  keyGenerator: () => 'registration',
+  message: { error: 'too_many_requests' }
+});
+
 const fail = (res, status, error, description) =>
   res.status(status).json({ error, error_description: description });
 
-router.post('/register', registerLimiter, async (req, res, next) => {
+router.post('/register', ceilingLimiter, registerLimiter, async (req, res, next) => {
   try {
     // A registration response carries a secret exactly once. Nothing may keep
     // a copy of it, including a proxy that thought this looked cacheable.

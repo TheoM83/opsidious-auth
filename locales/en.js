@@ -22,7 +22,10 @@ export default {
   },
 
   home: {
-    title: 'Opsidious',
+    // The layout appends ' — Opsidious' to anything that is not already the
+    // bare brand, so this says what the service IS. It was 'Opsidious', which
+    // in a tab strip and a search result is a word with no claim in it.
+    title: 'Anonymous sign-in for any application',
     eyebrow: 'Identity service',
     h1: 'An identity that does not follow you.',
     lede: 'You sign in with Google. This service is never told your email or your name — only an opaque identifier, which it does not keep either.',
@@ -82,6 +85,12 @@ export default {
       'The secret is returned once, in that response, and never again. A public client — desktop, mobile, single-page — sends {method} instead and proves itself with PKCE.',
     discoveryTitle: 'Discovery',
     docsLink: 'Design document',
+
+    // Travels alone, on a card in somebody else's timeline.
+    shareDescription:
+      'Sign in with Google. This service is never told your email or your name, and every application gets a different identifier for the same person.',
+    shareImageAlt:
+      'Opsidious Auth — an identity that does not follow you.',
 
     footerNote:
       'Built and run by one person. The source is public, so the claims above can be read rather than believed.'

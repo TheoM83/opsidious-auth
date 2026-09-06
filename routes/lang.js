@@ -13,20 +13,35 @@ import { renderError } from '../lib/middleware.js';
 const router = Router();
 
 // `next` comes from the query, so it is attacker-controlled and could be an
-// absolute URL to anywhere. Only a same-origin PATH is ever followed, and
-// `//evil.example` is refused explicitly: a browser reads a leading `//` as a
-// scheme-relative URL, which is an open redirect wearing a path's clothes.
+// absolute URL to anywhere. Only a same-origin PATH is ever followed.
+//
+// THE CHECK RUNS AFTER NORMALISATION, AND THAT IS THE WHOLE FUNCTION.
+//
+// The first version rejected a leading `//` on the RAW string and then handed
+// the parsed path back. But `new URL()` resolves `..` segments, and resolving
+// them can CREATE a leading `//` that was not in the input:
+//
+//   new URL('/..//evil.example', base).pathname === '//evil.example'
+//
+// A browser reads `Location: //evil.example` as scheme-relative and goes to
+// https://evil.example — sent there by the identity provider's own origin,
+// which is the phishing primitive an OIDC provider least needs to have. The
+// guard was right and ran one step too early.
 function safeNext(raw) {
   const value = String(raw ?? '');
-  if (!value.startsWith('/') || value.startsWith('//')) return '/';
+  if (!value.startsWith('/')) return '/';
+
+  let path;
   try {
-    // Resolved against a throwaway origin purely to reject anything that
-    // parses as absolute despite the checks above.
+    // Resolved against a throwaway origin purely to normalise it; nothing about
+    // that origin is ever used.
     const url = new URL(value, 'https://opsidious.invalid');
-    return `${url.pathname}${url.search}`;
+    path = `${url.pathname}${url.search}`;
   } catch {
     return '/';
   }
+
+  return path.startsWith('//') ? '/' : path;
 }
 
 router.get('/lang/:code', (req, res) => {

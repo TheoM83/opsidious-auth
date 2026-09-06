@@ -88,6 +88,41 @@ test('no locale ships an empty string, and none ships markup', () => {
   }
 });
 
+// French sets its punctuation apart from the word before it, and the space it
+// uses has to be a no-break one: with a plain U+0020 a narrow screen wraps and
+// leaves a lone `:` at the top of the next line, or a `«` stranded at the end
+// of one. Every French reader sees that; no spell-checker does. These
+// sentences are typed by hand, so this test is the only thing holding the
+// right character in place.
+//
+//   `:` takes U+00A0. `;` `!` `?` and the inside of guillemets take U+202F.
+//
+// The forbidden one is written ` ` rather than typed: three kinds of space
+// are in play below and only one of them is wrong, which is not a distinction
+// to leave to whoever is reading the diff.
+const FRENCH_SPACING = [
+  [/\u0020:/, '`:` must be preceded by U+00A0, not a plain space'],
+  [/\u0020[;!?]/, '`;` `!` `?` must be preceded by U+202F, not a plain space'],
+  [/«\u0020/, '`«` must be followed by U+202F, not a plain space'],
+  [/\u0020»/, '`»` must be preceded by U+202F, not a plain space']
+];
+
+test('French punctuation is spaced with characters that cannot break', () => {
+  for (const code of LOCALES.filter((c) => c.startsWith('fr'))) {
+    for (const [key, value] of flatten(CATALOGUES[code])) {
+      // A URL obeys nobody's typography, and a reader retypes it verbatim, so
+      // spacing one in French would break it. That is the whole exemption
+      // here: the test above forbids markup in a catalogue, so no code sample
+      // can be sitting in one of these strings to begin with.
+      if (value.includes('://')) continue;
+
+      for (const [pattern, why] of FRENCH_SPACING) {
+        assert.ok(!pattern.test(value), `${code}: ${key} — ${why}`);
+      }
+    }
+  }
+});
+
 // ── Negotiation ──────────────────────────────────────────────────────────
 
 test('a person beats the application that sent them', () => {
@@ -278,7 +313,18 @@ test('the language cookie is host-only and Secure, like every other cookie here'
 });
 
 test('the language switch is not an open redirect', async () => {
-  for (const next of ['//evil.example/', 'https://evil.example/', 'javascript:alert(1)']) {
+  // `/..//evil.example` is the one that got through. It passes a check on the
+  // raw string - it starts with a single slash - and `new URL()` then resolves
+  // the `..` into a leading `//`, which a browser follows off-origin. The
+  // check moved to after normalisation; this row is why.
+  for (const next of [
+    '//evil.example/',
+    '/..//evil.example',
+    '/.//evil.example',
+    '/../..//evil.example/path',
+    'https://evil.example/',
+    'javascript:alert(1)'
+  ]) {
     const res = await request(app).get(`/lang/fr`).query({ next });
     assert.equal(res.headers.location, '/', `${next} must not be followed`);
   }

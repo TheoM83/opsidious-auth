@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opsidious Auth share card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Rendered by tools/render-og.mjs at exactly 1200×630, so every length here
+     is a pixel rather than a percentage: the card has one size and there is no
+     second one to be responsive to. */
+  :root {
+    --bg: #0b0b0e;
+    --line: #1e1e23;
+    --text: #f4f4f6;
+    --note: #7e7e8a;
+    --faint: #45454e;
+    --brand: #ef4444;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    /* The one number the whole composition hangs off. The cut sits here, and
+       the mark is positioned so the middle of its hexagon lands on it. */
+    --cut-y: 410px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+
+  .card {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* A faint rule grid, well under the noise floor of a timeline thumbnail but
+     there at full size — the card should reward being opened. */
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.34;
+    mask-image: radial-gradient(120% 90% at 78% 50%, #000 0%, transparent 72%);
+  }
+
+  /* The mark: hexagon only. It carries no bar of its own, because the bar is
+     the cut below and it crosses the whole card — which is the claim the card
+     is making, drawn rather than written. */
+  .mark {
+    position: absolute;
+    right: 80px;
+    /* 140 is the hexagon's centre in a 290-unit box, scaled to 300px. */
+    top: calc(var(--cut-y) - 140 / 290 * 300px);
+    width: 300px;
+    height: 300px;
+  }
+  .mark svg { display: block; width: 100%; height: 100%; }
+  .g-hex { fill: none; stroke: color-mix(in srgb, var(--brand) 58%, transparent); stroke-width: 1.4; }
+  .g-hex-in { fill: none; stroke: var(--line); stroke-width: 1; }
+  .g-tick { fill: color-mix(in srgb, var(--brand) 78%, transparent); }
+
+  /* Drawn after the mark, so it passes in front of the hexagon. */
+  .cut-soft {
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(var(--cut-y) - 9px);
+    height: 18px;
+    background: linear-gradient(to right,
+      transparent 0%,
+      color-mix(in srgb, var(--brand) 10%, transparent) 55%,
+      color-mix(in srgb, var(--brand) 22%, transparent) 100%);
+  }
+  .cut {
+    position: absolute;
+    left: 0; right: 0;
+    top: var(--cut-y);
+    height: 2px;
+    background: linear-gradient(to right,
+      color-mix(in srgb, var(--brand) 14%, transparent) 0%,
+      color-mix(in srgb, var(--brand) 62%, transparent) 34%,
+      var(--brand) 68%,
+      var(--brand) 100%);
+  }
+
+  /* Everything readable sits clear of the cut: the headline above it, the
+     domain below. Nothing is struck through. */
+  .text {
+    position: absolute;
+    left: 76px;
+    bottom: calc(630px - var(--cut-y) + 40px);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--note);
+    margin-bottom: 26px;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 52px;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+    color: var(--text);
+  }
+  h1 em { font-style: normal; color: var(--brand); }
+
+  .foot {
+    position: absolute;
+    left: 76px;
+    top: calc(var(--cut-y) + 42px);
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 19px;
+    letter-spacing: 0.04em;
+  }
+  .foot .domain { color: var(--text); font-weight: 500; }
+  .foot .sep { color: var(--faint); }
+  .foot .projects { color: var(--note); letter-spacing: 0.12em; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="grid"></div>
+
+    <div class="mark">
+      <svg viewBox="0 0 290 290" role="presentation">
+        <polygon class="g-hex" points="145,50 223,95 223,185 145,230 67,185 67,95"/>
+        <polygon class="g-hex-in" points="145,80 197,110 197,170 145,200 93,170 93,110"/>
+        <polygon class="g-tick" points="145,86 139,97 151,97"/>
+        <polygon class="g-tick" points="145,194 139,183 151,183"/>
+      </svg>
+    </div>
+
+    <div class="cut-soft"></div>
+    <div class="cut"></div>
+
+    <div class="text">
+      <p class="eyebrow" id="eyebrow">Identity service</p>
+      <h1 id="headline">An identity<br>that <em>does not</em><br>follow you.</h1>
+    </div>
+
+    <p class="foot">
+      <span class="domain">auth.opsidious.com</span>
+      <span class="sep">/</span>
+      <span class="projects" id="foot-note">open registration · no email · no name</span>
+    </p>
+  </div>
+
+<script>
+  // ?lang=fr renders the French card from this same file, so the two can never
+  // drift into different layouts.
+  if (new URLSearchParams(location.search).get('lang') === 'fr') {
+    document.documentElement.lang = 'fr';
+    document.getElementById('eyebrow').textContent = 'Service d’identité';
+    document.getElementById('headline').innerHTML =
+      'Une identité<br>qui <em>ne vous suit</em><br>pas.';
+    document.getElementById('foot-note').textContent =
+      'enregistrement ouvert · sans e-mail · sans nom';
+  }
+</script>
+</body>
+</html>

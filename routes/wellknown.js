@@ -85,6 +85,12 @@ router.get('/', (req, res, next) => {
   renderPage(res, 'home', {
     ...res.locals,
     title: t('home.title'),
+    // The only page here that a search engine should ever hold. Everything
+    // else - the sign-in step, the account page - is somebody's session, and
+    // the layout keeps it out of the index by default.
+    noindex: false,
+    canonical: `${PUBLIC_URL}/`,
+    shareImage: `${PUBLIC_URL}/${res.locals.locale === 'fr' ? 'og-fr.png' : 'og.png'}`,
     registrationOpen: REGISTRATION_ENABLED,
     publicUrl: PUBLIC_URL
   }).catch(next);

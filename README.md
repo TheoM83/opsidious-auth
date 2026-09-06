@@ -407,7 +407,12 @@ Everything else follows from that one sentence:
 
 Registration is rate limited per address (`REGISTER_RATE_LIMIT_MAX`, ten an
 hour by default) because it is the only unauthenticated endpoint that writes a
-durable row. A deployment that wants a closed instance sets
+durable row, and again by a ceiling keyed on nothing at all
+(`REGISTER_GLOBAL_MAX`, two hundred an hour). The second is the one that bounds
+the table: a per-address limit counts an IPv6 /64 as eighteen quintillion
+separate callers, so on its own it bounds nobody. When the ceiling is reached,
+new applications wait — sign-in, tokens and every client already registered are
+untouched, because none of them route through that endpoint. A deployment that wants a closed instance sets
 `REGISTRATION_ENABLED=false`; the discovery document then omits the endpoint
 rather than advertising one that answers 403.
 
