@@ -110,6 +110,19 @@ test('the sitemap lists the front door and nothing else', async () => {
   assert.ok(!/authorize|intro|account/.test(res.text), 'a session page is listed');
 });
 
+// The only robots.txt on this host used to be the CDN's injected block list,
+// which carries no Sitemap line — so the sitemap was unfindable except by
+// guessing. And nothing may be disallowed: a Disallow stops a crawler reading
+// the noindex meta on the page it names, which is the mechanism actually
+// keeping session pages out of the index.
+test('robots.txt points at the sitemap and forbids nothing', async () => {
+  const res = await request(app).get('/robots.txt');
+  assert.equal(res.status, 200);
+  assert.match(res.headers['content-type'], /text\/plain/);
+  assert.match(res.text, new RegExp(`Sitemap: ${PUBLIC_URL}/sitemap.xml`));
+  assert.ok(!/Disallow:\s*\S/.test(res.text), 'a Disallow would hide the noindex it relies on');
+});
+
 test('discovery advertises S256 and none', async () => {
   const res = await request(app).get('/.well-known/openid-configuration');
   assert.deepEqual(res.body.code_challenge_methods_supported, ['S256']);

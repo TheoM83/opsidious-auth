@@ -96,6 +96,27 @@ router.get('/', (req, res, next) => {
   }).catch(next);
 });
 
+// Served by this application rather than left to the edge. Without it the only
+// robots.txt on this host is the one the CDN injects — a block list for AI
+// crawlers, and no `Sitemap:` line at all, so the sitemap below could only be
+// found by guessing its address.
+//
+// Nothing is disallowed here, deliberately. Every page except the front door
+// carries a `noindex` meta, and `Disallow` would stop a crawler fetching those
+// pages and therefore stop it ever READING that meta — at which point a URL
+// linked from somewhere else can still be indexed, address only, with no way
+// left to tell anyone not to. The two mechanisms do not stack; using the
+// stronger-sounding one here would weaken the result.
+router.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(`User-agent: *
+Allow: /
+
+Sitemap: ${PUBLIC_URL}/sitemap.xml
+`);
+});
+
 // One page, so one entry. It exists because the front door became indexable and
 // is the entry point for open registration: an open door nobody can find is
 // open only to whoever was already told about it. Everything else this service
