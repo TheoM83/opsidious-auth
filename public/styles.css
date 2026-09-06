@@ -1096,3 +1096,15 @@ footer a:hover {
   line-height: 1.62;
   color: var(--muted);
 }
+
+/* Le renvoi vers la plateforme, en pied de page. Discret : c'est une
+   provenance, pas un appel à l'action — et c'est le seul lien sortant de ce
+   service, le bandeau n'en portant qu'un seul, vers l'accueil. */
+a.foot-brand {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+a.foot-brand:hover {
+  color: var(--text);
+}

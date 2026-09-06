@@ -8,6 +8,7 @@ export default {
   common: {
     brand: 'Opsidious',
     homeAria: 'Opsidious, accueil',
+    platformAria: 'Opsidious, la plateforme dont ce service fait partie',
     source: 'Code source',
     langAria: 'Lire cette page en {lang}'
   },

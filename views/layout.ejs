@@ -68,7 +68,13 @@
     <main id="main" tabindex="-1"><%- body %></main>
 
     <footer>
-      <span class="foot-brand"><%= t('common.brand') %></span>
+      <%# Le seul lien sortant de ce service, et il est en pied de page : le
+          bandeau ne porte qu'une destination, délibérément (voir plus haut).
+          Quelqu'un qui vient de voir « Opsidious » dans une barre de redirection
+          et qui veut savoir ce que c'est ne devrait pas avoir à deviner
+          l'adresse de la plateforme. %>
+      <a class="foot-brand" href="https://opsidious.com" target="_blank" rel="noopener"
+         aria-label="<%= t('common.platformAria') %>"><%= t('common.brand') %></a>
 
       <%# Un lien par langue, écrit dans cette langue. `next` renvoie exactement
           là où l'on était : sur /authorize, cela veut dire la demande de

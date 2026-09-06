@@ -13,6 +13,7 @@ export default {
   common: {
     brand: 'Opsidious',
     homeAria: 'Opsidious, home',
+    platformAria: 'Opsidious, the platform this service belongs to',
     source: 'Source code',
     langAria: 'Read this page in {lang}'
   },
