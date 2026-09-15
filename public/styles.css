@@ -622,16 +622,18 @@ figcaption {
 .limits .band-note {
   margin: 0 0 18px;
 }
+/* One card per limit: the title on top, the explanation under it. A
+   definition list alternates dt and dd, so they are styled as the two halves
+   of the same card rather than laid out as columns. */
 .limit-list {
   margin: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
+  gap: 0;
+  max-width: 48rem;
 }
-@media (min-width: 760px) {
-  .limit-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.limit-list dt + dd + dt {
+  margin-top: 14px;
 }
 .limit-list dt {
   padding: 18px 20px 0;
