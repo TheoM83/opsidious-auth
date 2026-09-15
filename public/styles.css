@@ -392,6 +392,13 @@ main {
 
 /* ── Who sees what: three cards, each admitting its limit ───────────────── */
 
+/* A list resets its own margin and padding, which would outrank the band's
+   column rule above; a direct child of a band keeps the column. */
+.band > .flow {
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
+
 .flow {
   list-style: none;
   margin: 0;
