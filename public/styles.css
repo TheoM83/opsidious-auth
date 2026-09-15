@@ -47,26 +47,30 @@
   --bar-h: 64px;
 }
 
+/* The `?v=1` on each face is a cache key, not a version: the files never
+   change, but an edge that had cached a 404 for the bare address before the
+   first deploy that shipped them would keep serving it. A stamped address
+   is a different key. */
 @font-face {
   font-family: 'IBM Plex Sans';
   font-style: normal;
   font-weight: 400 600;
   font-display: swap;
-  src: url('fonts/plex-sans-var.woff2') format('woff2');
+  src: url('fonts/plex-sans-var.woff2?v=1') format('woff2');
 }
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('fonts/plex-mono-400.woff2') format('woff2');
+  src: url('fonts/plex-mono-400.woff2?v=1') format('woff2');
 }
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('fonts/plex-mono-500.woff2') format('woff2');
+  src: url('fonts/plex-mono-500.woff2?v=1') format('woff2');
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
