@@ -38,7 +38,7 @@
       <meta name="twitter:image" content="<%= shareImage %>" />
       <meta name="twitter:image:alt" content="<%= t('home.shareImageAlt') %>" />
     <% } %>
-    <meta name="theme-color" content="#0b0b0e" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="/emblem.svg" type="image/svg+xml" />
     <link rel="icon" href="<%= asset('/favicon-32.png') %>" sizes="32x32" />
     <link rel="apple-touch-icon" href="<%= asset('/apple-touch-icon.png') %>" />
@@ -46,6 +46,9 @@
         feuille change l'adresse, donc un navigateur ne peut plus servir
         l'ancienne. C'est ce qui a rendu le passage du rouge au bleu invisible
         pendant des heures — même URL, cache de sept jours. %>
+    <%# The typeface is served from here, like everything else on this
+        service: no third-party origin, and the same face as opsidious.com. %>
+    <link rel="preload" href="<%= asset('/fonts/plex-sans-var.woff2') %>" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="<%= asset('/styles.css') %>" />
   </head>
   <body>
@@ -57,9 +60,16 @@
         reste vraie. %>
     <header class="topbar">
       <a class="brand" href="/" aria-label="<%= t('common.homeAria') %>">
-        <img src="<%= asset('/emblem-mark.svg') %>" alt="" width="22" height="22" />
+        <img src="<%= asset('/mark.svg') %>" alt="" width="24" height="24" />
         <span><%= t('common.brand') %></span>
       </a>
+      <%# Two destinations on the right: the account page, which is the whole
+          point of this service, and the platform it belongs to. %>
+      <nav class="topnav" aria-label="<%= t('common.brand') %>">
+        <a href="/account"><%= t('home.verifyCta') %></a>
+        <a class="btn btn--small btn--ghost" href="https://opsidious.com" target="_blank" rel="noopener"
+           aria-label="<%= t('common.platformAria') %>">opsidious.com</a>
+      </nav>
     </header>
 
     <%# `tabindex="-1"` : sans lui, WebKit fait défiler jusqu'à l'ancre mais

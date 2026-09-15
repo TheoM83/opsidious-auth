@@ -1,79 +1,75 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    Opsidious Auth
    ═══════════════════════════════════════════════════════════════════════════
-   The same design language as opsidious.com, and deliberately NOT the same
-   typefaces.
-
-   The site loads IBM Plex from Google Fonts. This service does not, and cannot:
-   its content security policy allows no external origin of any kind, and an
-   identity service whose whole argument is "nothing third-party runs here" has
-   already lost that argument the moment it fetches a font from somebody else.
-   So the pairing is echoed with system stacks — a monospace voice for anything
-   structural, the system UI face for prose. The identity is carried by the
-   SHAPES, which is where it should live anyway.
+   The same design system as opsidious.com: light, one typeface family (IBM
+   Plex Sans, served from here — this service allows no third-party origin,
+   so the face travels with it), the Opsidious red as the studio's mark and the
+   one thing a reader is asked to stop at, white surfaces on a pale ground, one
+   shadow, one radius.
 
    ONE MOTIF: the bar that crosses the hexagon in the mark. It is the cut. It
-   appears three times and nowhere else — drawing across the emblem in the hero,
-   as the thread the three parties sit on, and as the axis of the derivation
+   draws across the emblem in the hero and is the axis of the derivation
    diagram.
 
-   ONE COLOUR: vermillon, for that bar and for the things a reader is asked to
-   check rather than believe — what each party CANNOT see, and the one field
-   that discloses something.
-
-   TWO SURFACES: the page is flat. Nothing is raised off it. The only relief is
-   negative: what does not exist is cut INTO the ground, because a card floating
-   above the page would be the opposite claim.
+   RED means "stop and read": what each party CANNOT see, the one stored field
+   that discloses something, account deletion, an error. Nothing else is red,
+   so red stays legible.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg: #0b0b0e;
-  --sunk: #070709;
-  --surface: #131316;
-  --line: #1e1e23;
-  --line-2: #2c2c33;
-  --text: #f4f4f6;
-  --muted: #9b9ba4;
-  --note: #7e7e8a;
-  /* There is no `--faint`. It existed for text a shade below `--note`,
-     measured 2.1:1 on this ground, and every one of its five callers was
-     prose. They moved to `--muted`; the token went with them rather than
-     staying declared as an invitation to make that mistake again. A
-     hairline that needs a colour uses `--line`. */
-  /* IBM Carbon blue-40. It is the family this service's typeface belongs to,
-     and it reads 8.35:1 on this ground against the old red's 5.22:1.
+  --bg: #ffffff;
+  --ground: #f6f7fa;
+  --ink: #0f1218;
+  --text: #1f2430;
+  --text-2: #4b5262;
+  --muted: #6b7282;
+  --line: #e6e8ee;
+  --line-2: #d3d7e0;
+  --brand: #e0262c;
+  --brand-ink: #b71c22;
+  --brand-soft: #fdecec;
+  --mark: #e0262c;
+  --alert: #e0262c;
+  --code-bg: #0f1218;
+  --code-text: #e6e8ee;
+  --ok: #2f9e6e;
 
-     The red is gone as a resting colour deliberately. This is the page where
-     somebody decides whether to hand over a sign-in, and a page that is red
-     before anything has happened looks like something has gone wrong. An alarm
-     that is always on is either ignored or believed, and neither is what this
-     service wants from the person reading it.
+  --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-     Red stays as `--alert`, and only ever marks something a reader should
-     actually stop at: the one stored field that discloses anything, the
-     account-deletion block, and an error. That is what makes it legible. */
-  /* --mark  is the identity: the hexagon and the bar through it are the
-             Opsidious logo, and a logo is not a status. It keeps the red it has
-             always had — including inside other people's applications, where
-             the sign-in button carries it.
-     --brand is the interface: links, rules, emphasis.
-     --alert is a fact the reader should stop at. Same hex as the mark and a
-             different job, which holds because a logo never moves. */
-  --mark: #ef4444;
-  --brand: #78a9ff;
-  --alert: #ef4444;
-  --shadow: #000;
-  /* Drawn on top of --text, which is the one light surface the service has. */
-  --on-light: #18181b;
-
-  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
-  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-
-  --measure: 36rem;
-  --wide: 62rem;
-  --pad: clamp(20px, 5vw, 56px);
-  --gutter: max(var(--pad), calc((100% - var(--wide)) / 2));
+  --wrap: 68rem;
+  --measure: 40rem;
+  --pad: clamp(20px, 4vw, 40px);
+  --r: 14px;
+  --r-s: 9px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 32px -18px rgba(16, 24, 40, 0.25);
+  --shadow-lg: 0 2px 4px rgba(16, 24, 40, 0.05), 0 30px 60px -30px rgba(16, 24, 40, 0.35);
+  --bar-h: 64px;
 }
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('fonts/plex-sans-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('fonts/plex-mono-500.woff2') format('woff2');
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
 
 *,
 *::before,
@@ -92,28 +88,82 @@ body {
   color: var(--text);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: inherit;
 }
-
+img {
+  max-width: 100%;
+  height: auto;
+}
 code {
   font-family: var(--mono);
   font-size: 0.9em;
-  background: var(--surface);
-  padding: 1px 5px;
-  border-radius: 2px;
 }
 
-/* The one sanctioned use of the accent outside the motif: a ring that has to
-   compete with the page for attention is a ring people stop noticing. */
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: 4px;
+}
+[id] {
+  scroll-margin-top: calc(var(--bar-h) + 16px);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  color: var(--ink);
+  text-wrap: balance;
+}
+h1 {
+  font-size: clamp(34px, 4.8vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+}
+h2 {
+  font-size: clamp(24px, 3vw, 34px);
+}
+h3 {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0;
+}
+
+.lede {
+  max-width: var(--measure);
+  font-size: clamp(17px, 1.6vw, 19px);
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.eyebrow {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--brand);
+}
+
+main p a,
+main li a,
+main dd a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 3px;
+}
+main p a:hover,
+main li a:hover {
+  text-decoration-color: var(--brand);
 }
 
 .skip {
@@ -121,762 +171,632 @@ code {
   left: -9999px;
   top: 0;
   padding: 12px 18px;
-  background: var(--surface);
-  font-family: var(--mono);
-  font-size: 13px;
-  text-decoration: none;
+  background: var(--ink);
+  color: #fff;
+  z-index: 30;
 }
 .skip:focus {
-  left: 0;
-  z-index: 20;
+  left: 12px;
+  top: 12px;
 }
 
-/* ── Bar ─────────────────────────────────────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--brand);
+  border-radius: var(--r-s);
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+.btn:hover {
+  background: var(--brand-ink);
+  border-color: var(--brand-ink);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn--quiet,
+.btn--ghost {
+  background: #fff;
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.btn--quiet:hover,
+.btn--ghost:hover {
+  background: var(--ground);
+  border-color: var(--line-2);
+}
+.btn--small {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.btn--danger {
+  background: #fff;
+  color: var(--brand-ink);
+  border-color: var(--brand);
+}
+.btn--danger:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* ── The bar ─────────────────────────────────────────────────────────────── */
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
-  padding: 16px var(--gutter);
-  border-bottom: 1px solid var(--line);
+  justify-content: space-between;
+  gap: 24px;
+  height: var(--bar-h);
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
-
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--line);
+}
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  text-decoration: none;
-  font-family: var(--mono);
-  font-size: 13px;
+  flex: none;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
 }
 .brand img {
   display: block;
 }
-
-/* ── Hero ────────────────────────────────────────────────────────────── */
-
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: clamp(40px, 6vw, 64px);
+.topnav {
+  display: flex;
   align-items: center;
-  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
-  margin-inline: var(--gutter) auto;
-  padding-block: clamp(48px, 9vw, 96px);
+  gap: clamp(14px, 2vw, 24px);
+  font-size: 15px;
+  font-weight: 500;
+}
+.topnav > a {
+  color: var(--text-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.topnav > a:hover {
+  color: var(--ink);
+}
+.topnav > a.btn {
+  color: var(--ink);
 }
 
-@media (min-width: 860px) {
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+
+main {
+  outline: none;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding: clamp(56px, 9vw, 104px) var(--pad) clamp(48px, 7vw, 88px);
+}
+@media (min-width: 900px) {
   .hero {
     grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
   }
 }
-
-.eyebrow {
-  margin: 0 0 22px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--note);
+.hero h1 {
+  margin-bottom: 18px;
 }
-
-h1 {
-  margin: 0 0 24px;
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: clamp(27px, 4.4vw, 42px);
-  line-height: 1.14;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-
-.lede {
-  margin: 0;
-  max-width: var(--measure);
-  font-size: clamp(15.5px, 1.7vw, 17.5px);
-  color: var(--muted);
-}
-
 .hero-cta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 30px 0 0;
+  margin-top: 28px;
 }
-
 .hero-mark {
   justify-self: center;
-  width: min(100%, 250px);
+  width: min(100%, 260px);
 }
 .glyph {
   display: block;
   width: 100%;
   height: auto;
+  overflow: visible;
 }
-
 .g-hex {
   fill: none;
-  stroke: color-mix(in srgb, var(--mark) 62%, transparent);
-  stroke-width: 1.4;
+  stroke: rgba(224, 38, 44, 0.75);
+  stroke-width: 1.6;
 }
 .g-hex-in {
-  fill: var(--bg);
-  stroke: var(--line);
+  fill: #fff;
+  stroke: var(--line-2);
   stroke-width: 1;
-}
-.g-bar-soft {
-  fill: var(--mark);
-  opacity: 0.24;
 }
 .g-bar,
 .g-tick {
   fill: var(--mark);
 }
-
-/* ── Buttons ─────────────────────────────────────────────────────────── */
-
-.btn {
-  display: inline-block;
-  padding: 11px 20px;
-  border: 1px solid var(--line-2);
-  background: none;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    background 140ms ease;
-}
-.btn:hover {
-  border-color: var(--muted);
-  background: var(--surface);
+.g-bar-soft {
+  fill: var(--mark);
+  opacity: 0.22;
 }
 
-.btn--quiet {
-  border-color: transparent;
-  color: var(--muted);
-}
-.btn--quiet:hover {
-  color: var(--text);
-  border-color: var(--line-2);
-  background: none;
-}
-
-.btn--danger {
-  border-color: color-mix(in srgb, var(--brand) 45%, var(--line-2));
-  color: var(--brand);
-}
-.btn--danger:hover {
-  background: color-mix(in srgb, var(--brand) 10%, transparent);
-  border-color: var(--brand);
-}
-
-/* ── Bands ───────────────────────────────────────────────────────────── */
-
+/* Bands: each section below the hero. Odd ones sit on the pale ground. */
 .band {
+  padding: clamp(48px, 7vw, 88px) 0;
   border-top: 1px solid var(--line);
-  padding-bottom: clamp(44px, 7vw, 80px);
-  scroll-margin-top: 12px;
 }
-
-/* `:not(.band-h)`, not `*`: at one class this guard lost to any child rule that
-   wrote a `margin` shorthand, which silently dropped the gutter and put that
-   child against the left edge of the viewport. Naming the exception here also
-   spares the heading from having to undo the guard afterwards. */
-.band > :not(.band-h) {
-  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
-  margin-inline: var(--gutter) auto;
+.band:nth-of-type(odd) {
+  background: var(--ground);
 }
-
+.band > * {
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
 .band-h {
-  margin: 0 0 clamp(28px, 4vw, 44px);
-  padding: 15px var(--gutter);
-  border-bottom: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
+  margin-bottom: clamp(20px, 3vw, 32px);
 }
-
 .band-lede {
-  margin-block: 0 clamp(28px, 4vw, 40px);
   max-width: var(--measure);
-  font-size: clamp(15.5px, 1.6vw, 17px);
+  margin-bottom: clamp(24px, 3vw, 36px);
+  font-size: 17px;
+  color: var(--text-2);
+}
+.band-note {
+  max-width: var(--measure);
+  margin-top: 18px;
+  font-size: 14.5px;
   color: var(--muted);
 }
-
-.band-note {
-  margin-block: 20px 0;
-  max-width: var(--measure);
-  font-size: 14.5px;
-  color: var(--note);
-}
-
 .sub-h {
-  margin: 0 0 16px;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--note);
+  margin-bottom: 14px;
+  font-size: 20px;
 }
 
-/* ── The chain: three parties on one thread ──────────────────────────── */
-/* The mark is a hexagon crossed by a bar. A sign-in is a journey through
-   something, so it is drawn as one: a vermillon thread, and each party a point
-   on it. Borrowed from the brand rather than invented. */
+/* ── Who sees what: three cards, each admitting its limit ───────────────── */
 
 .flow {
   list-style: none;
-  /* margin-block, not margin: the gutter comes from `.band > *`, and a blanket
-     `margin: 0` here dropped it - which put the thread's nodes at left:-26px of
-     the viewport, gave the page a horizontal overflow, and quietly shifted
-     every other section on it. */
-  margin-block: 0;
-  padding: 0 0 0 26px;
-  max-width: var(--measure);
-  position: relative;
-}
-
-.flow::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 10px;
-  bottom: 10px;
-  width: 2px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--brand) 70%, transparent) 12%,
-    color-mix(in srgb, var(--brand) 70%, transparent) 88%,
-    transparent
-  );
-}
-
-.flow li {
-  position: relative;
-  padding-bottom: 26px;
-}
-.flow li:last-child {
-  padding-bottom: 0;
-}
-
-.flow li::before {
-  content: '';
-  position: absolute;
-  left: -26px;
-  top: 8px;
-  width: 10px;
-  height: 10px;
-  background: var(--bg);
-  border: 2px solid var(--brand);
-  transform: rotate(45deg);
-}
-
-.flow-who {
-  display: block;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.flow-line {
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
-  gap: 0 14px;
-  align-items: baseline;
-  padding: 5px 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
 }
-
-.flow-label {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.flow-sees {
-  color: var(--muted);
-}
-.flow-blind {
-  color: var(--brand);
-}
-.flow-line--blind .flow-label {
-  color: var(--brand);
-}
-
-/* The compact form, on the one screen where a decision is being made. */
-.flow--compact li {
-  padding-bottom: 18px;
-}
-.flow--compact .flow-who {
-  margin-bottom: 4px;
-  font-size: 11px;
-}
-/* A rem wider than the page version. « Ne peut pas voir » is the longest label
-   either language writes, and a label that wraps onto a second line stops
-   reading as a label and starts reading as more of the sentence. */
-.flow--compact .flow-line {
-  grid-template-columns: 8.5rem minmax(0, 1fr);
-  gap: 0 12px;
-  padding: 3px 0;
-}
-.flow--compact .flow-sees,
-.flow--compact .flow-blind {
-  font-size: 14.5px;
-  line-height: 1.45;
-}
-
-/* Last, so it also overrides the compact column above: below this width a label
-   column would leave the sentence beside it about three words wide, so the
-   label goes above the line it names instead. */
-@media (max-width: 560px) {
-  .flow-line,
-  .flow--compact .flow-line {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
+@media (min-width: 760px) {
+  .flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+.flow li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+.flow-who {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.flow-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  font-size: 14.5px;
+  color: var(--text-2);
+}
+.flow-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  align-self: baseline;
+  padding-top: 2px;
+}
+.flow-line--blind .flow-label {
+  color: var(--brand-ink);
+}
+.flow-blind {
+  color: var(--ink);
+  font-weight: 500;
+}
+.flow--compact {
+  gap: 10px;
+}
+.flow--compact li {
+  padding: 14px 16px;
+  box-shadow: none;
+}
 
-/* ── The derivation diagram ──────────────────────────────────────────── */
+/* ── The derivation diagram ──────────────────────────────────────────────── */
 
 .split {
   display: grid;
-  gap: clamp(28px, 4vw, 44px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px 48px;
+  align-items: start;
 }
-
+@media (min-width: 900px) {
+  .split {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
 .split-body {
-  margin: 0;
   max-width: var(--measure);
-  color: var(--muted);
+  font-size: 16.5px;
+  color: var(--text-2);
 }
-
 .figure {
   margin: 0;
 }
-
 .figure-scroll {
   overflow-x: auto;
+  padding: 18px;
+  background: #fff;
   border: 1px solid var(--line);
-  background: var(--sunk);
-  padding: clamp(16px, 2.2vw, 26px);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
 }
-
 .dia {
   display: block;
   width: 100%;
   min-width: 560px;
   height: auto;
+  font-family: var(--mono);
 }
-
+figcaption {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
 .d-lab,
 .d-cut {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  fill: var(--text);
+  font-size: 12px;
+  fill: var(--muted);
 }
 .d-cut {
-  fill: var(--brand);
+  fill: var(--brand-ink);
+  font-weight: 500;
 }
 .d-node {
-  fill: var(--text);
+  fill: var(--ink);
 }
 .d-wire {
   fill: none;
   stroke: var(--line-2);
-  stroke-width: 1;
+  stroke-width: 1.5;
 }
 .d-bar {
   fill: var(--brand);
 }
 .d-out rect {
-  fill: none;
-  stroke: var(--line-2);
-  stroke-width: 1;
+  fill: var(--ground);
+  stroke: var(--line);
 }
 .d-app {
-  font-family: var(--mono);
   font-size: 12px;
-  font-weight: 600;
-  fill: var(--text);
+  fill: var(--ink);
+  font-weight: 500;
 }
 .d-val {
-  font-family: var(--mono);
-  font-size: 11px;
-  fill: var(--note);
+  font-size: 11.5px;
+  fill: var(--muted);
 }
 .d-brace {
   fill: none;
   stroke: var(--brand);
-  stroke-width: 1.2;
+  stroke-width: 1.5;
 }
 
-/* Grey, though it names the claim: the vermillon in this figure belongs to the
-   cut and the bar, and a caption in the same colour reads as part of them. */
-.figure figcaption {
-  margin-top: 12px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
+/* ── Check rather than believe ───────────────────────────────────────────── */
 
-/* ── Verify / open registration / discovery ──────────────────────────── */
-
-.verify p {
-  margin: 0 0 20px;
+.verify {
+  display: grid;
+  gap: 16px;
   max-width: var(--measure);
-  color: var(--muted);
+  justify-items: start;
+}
+.verify > p:first-child {
+  font-size: 17px;
+  color: var(--text-2);
+}
+.verify .band-note {
+  margin-top: 0;
 }
 
-/* Flat, not cut in: --sunk says "this does not exist", and this block is an
-   invitation to register something. */
+/* ── Developers ──────────────────────────────────────────────────────────── */
+
 .open {
-  border: 1px solid var(--line);
-  background: var(--bg);
-  padding: clamp(24px, 3.5vw, 36px) clamp(20px, 3vw, 32px);
-  margin-bottom: clamp(28px, 4vw, 40px);
+  margin-bottom: clamp(28px, 4vw, 44px);
 }
-
 .open-h {
-  margin: 0 0 14px;
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: clamp(17px, 2vw, 21px);
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  margin-bottom: 8px;
 }
-
 .open-body {
-  margin: 0 0 24px;
   max-width: var(--measure);
-  color: var(--muted);
+  margin-bottom: 18px;
+  color: var(--text-2);
 }
-
 .code-cap {
-  margin: 0 0 10px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--muted);
 }
-
 .code {
   margin: 0;
-  padding: 18px 20px;
+  padding: 20px 22px;
   overflow-x: auto;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.7;
-  color: var(--muted);
-  tab-size: 2;
 }
 .code code {
-  background: none;
-  padding: 0;
   font-size: inherit;
 }
 
+.discovery {
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
 .links {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-family: var(--mono);
-  font-size: 13px;
-}
-.links li {
-  padding: 7px 0;
-  border-bottom: 1px solid var(--line);
-}
-.links li:last-child {
-  border-bottom: none;
-}
-.links a {
-  text-decoration: none;
-  color: var(--muted);
-  transition: color 140ms ease;
-}
-.links a:hover {
-  color: var(--text);
-}
-.links code {
-  background: none;
-  padding: 0;
-}
-
-.foot-note {
-  margin-top: clamp(28px, 4vw, 40px);
-}
-
-/* ── The sign-in screen ──────────────────────────────────────────────── */
-
-.intro {
-  max-width: min(34rem, calc(100% - var(--pad) * 2));
-  margin: clamp(40px, 8vw, 88px) auto;
-  padding: 0 0 40px;
-}
-
-/* The only thing on the service called a card, and still flat on the page:
-   --sunk is reserved for absence, and nothing on this screen is absent. */
-.intro-card {
-  border: 1px solid var(--line);
-  background: var(--bg);
-  padding: clamp(24px, 4vw, 38px);
-}
-
-.intro-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin-bottom: 26px;
-}
-.intro-mark {
-  flex: none;
-  margin-top: 2px;
-}
-.intro-head h1 {
-  margin: 0 0 4px;
-  font-size: clamp(20px, 3vw, 25px);
-}
-.intro-sub {
-  margin: 0;
-  font-size: 14.5px;
-  color: var(--muted);
-}
-
-/* The person is about to make a decision about Google, so the control says
-   Google in Google's own shape. Nothing here is loaded from Google — the mark
-   is a local SVG, like everything else on this origin. */
-.gbtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 28px;
-  padding: 14px 20px;
-  background: var(--text);
-  color: var(--on-light);
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 15px;
-  text-decoration: none;
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease;
-}
-.gbtn:hover {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 14%, transparent);
-}
-.gbtn:active {
-  transform: scale(0.995);
-}
-.gbtn__g {
-  display: block;
-}
-
-.intro-note {
-  margin: 16px 0 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--note);
-}
-
-.intro-foot {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 10px;
-  margin: 24px 0 0;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  color: var(--note);
 }
-.intro-foot a {
-  color: var(--muted);
+.links li a {
+  display: inline-block;
+  padding: 9px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: #fff;
   text-decoration: none;
-  border-bottom: 1px solid var(--line-2);
-  padding-bottom: 1px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
 }
-.intro-foot a:hover {
-  color: var(--text);
-  border-color: var(--muted);
+.links li a:hover {
+  border-color: var(--ink);
 }
-
-/* ── The account ledger ──────────────────────────────────────────────── */
-
-.ledger {
-  padding-bottom: clamp(44px, 7vw, 80px);
+.links code {
+  font-size: 13px;
 }
 
-.ledger-head {
-  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
-  margin-inline: var(--gutter) auto;
-  padding-block: clamp(40px, 7vw, 72px) clamp(28px, 4vw, 44px);
-}
-.ledger-head h1 {
+.limits .band-note {
   margin: 0 0 18px;
 }
-.ledger-head .lede {
-  max-width: var(--measure);
+.limit-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@media (min-width: 760px) {
+  .limit-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.limit-list dt {
+  padding: 18px 20px 0;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.limit-list dd {
+  margin: 0;
+  padding: 6px 20px 18px;
+  font-size: 15px;
+  color: var(--text-2);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--r) var(--r);
+}
+.foot-note {
+  margin-top: clamp(24px, 3vw, 36px);
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
-.ledger section > *:not(.band-h) {
-  max-width: min(var(--wide), calc(100% - var(--pad) * 2));
-  margin-inline: var(--gutter) auto;
+/* ── The account ledger ──────────────────────────────────────────────────── */
+
+.ledger {
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding: clamp(40px, 6vw, 72px) var(--pad) clamp(48px, 7vw, 88px);
+}
+.ledger-head {
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+.ledger-head h1 {
+  margin-bottom: 14px;
+}
+.ledger section + section {
+  margin-top: clamp(32px, 5vw, 56px);
+}
+.ledger .band-h {
+  font-size: clamp(20px, 2.4vw, 26px);
+  margin-bottom: 18px;
 }
 
-/* The hairlines are borders on the fields, not a 1px `gap` over a --line
-   ground. The gap trick shows that ground through anything the fields do not
-   cover, so an odd number of them paints the empty last cell as a solid block.
-   describeRow returns six today, which is the only reason nobody has seen it. */
 .fields {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  background: var(--bg);
-  border-block: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #fff;
+  overflow: hidden;
 }
-
 .field {
-  padding: clamp(18px, 2.4vw, 26px);
-  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
 }
-.field:first-child {
-  border-top: none;
+.field:last-child {
+  border-bottom: none;
 }
-
-@media (min-width: 800px) {
-  .fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (min-width: 820px) {
+  .field {
+    grid-template-columns: 11rem 12rem minmax(0, 1fr);
+    grid-template-areas:
+      'name shape kind'
+      'name shape verdict';
+    align-items: start;
   }
-  /* Two per row, so the first row is two fields wide and the seam moves. */
-  .field:nth-child(2) {
-    border-top: none;
+  .field-name {
+    grid-area: name;
   }
-  .field:nth-child(even) {
-    border-left: 1px solid var(--line);
+  .field-shape {
+    grid-area: shape;
+  }
+  .field-kind {
+    grid-area: kind;
+  }
+  .field .verdict {
+    grid-area: verdict;
   }
 }
-
 .field-name {
   font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.field-shape {
-  margin: 8px 0 12px;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
 }
 .field-shape code {
-  background: none;
-  padding: 0;
-  color: var(--note);
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--ground);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
-
 .field-kind {
-  margin: 0 0 14px;
   font-size: 14.5px;
-  color: var(--muted);
+  color: var(--text-2);
 }
-
 .verdict {
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
-
-/* The one field that discloses something says so out loud, instead of being
-   buried among the reassuring ones. */
+.field--reveals {
+  background: #fff8f8;
+}
 .field--reveals .verdict {
-  color: var(--alert);
+  color: var(--brand-ink);
+  font-weight: 500;
 }
 .verdict-mark {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 9px;
-  background: var(--alert);
-  transform: rotate(45deg);
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--brand);
   vertical-align: 1px;
 }
 
-/* Cut INTO the page: this section is about what does not exist. */
-.absent {
-  margin-top: clamp(36px, 5vw, 56px);
-}
 .absent ul {
-  margin: 0;
-  padding: clamp(20px, 3vw, 28px) clamp(20px, 3vw, 28px) clamp(20px, 3vw, 28px) clamp(38px, 4vw, 48px);
-  background: var(--sunk);
-  border-left: 2px solid var(--brand);
-  color: var(--muted);
-  box-shadow: inset 0 1px 0 var(--shadow);
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
 }
 .absent li {
-  padding: 4px 0;
+  position: relative;
+  padding-left: 24px;
+  color: var(--text-2);
 }
-.absent li::marker {
+.absent li::before {
+  content: '\2212';
+  position: absolute;
+  left: 2px;
+  font-family: var(--mono);
+  font-weight: 500;
   color: var(--brand);
-  content: '\2212  ';
 }
-
 .cannot {
-  margin: 22px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--brand);
+  border-radius: var(--r);
+  background: #fff8f8;
+  color: var(--text-2);
   max-width: var(--measure);
-  color: var(--muted);
 }
 .cannot strong {
-  display: block;
-  color: var(--text);
-  font-weight: 600;
-  margin-bottom: 4px;
+  color: var(--brand-ink);
 }
 
 .acts {
-  margin-top: clamp(36px, 5vw, 56px);
-}
-
-.act {
   display: grid;
   gap: 16px;
-  padding: clamp(20px, 3vw, 28px) 0;
-  border-bottom: 1px solid var(--line);
-  align-items: start;
 }
-.act:last-child {
-  border-bottom: none;
+.act {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px 24px;
+  align-items: center;
+  margin: 0;
+  padding: 20px 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
 }
-
-/* Below 760px the grid collapses to one column, and a stretched button is a
-   different control from the same button sitting beside its text above that
-   width. Sign out and Delete are the two acts here; they behave alike. */
-.act button {
-  justify-self: start;
-}
-
 @media (min-width: 760px) {
   .act {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -885,129 +805,183 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-
 .act-text h3 {
-  margin: 0 0 6px;
-  font-family: var(--mono);
-  font-size: 15px;
-  font-weight: 600;
+  margin-bottom: 4px;
 }
 .act-text p {
-  margin: 0;
-  max-width: var(--measure);
-  font-size: 14.5px;
-  color: var(--muted);
+  font-size: 15px;
+  color: var(--text-2);
 }
-.act-text .warn {
-  margin-top: 12px;
-  padding-left: 14px;
-  border-left: 2px solid color-mix(in srgb, var(--alert) 45%, var(--line));
-  color: var(--note);
-}
-
-.act--danger label {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.act--danger input {
-  display: block;
-  width: min(100%, 18rem);
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: var(--sunk);
-  border: 1px solid var(--line-2);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 14px;
-}
-.act--danger input:focus-visible {
+.act--danger {
   border-color: var(--brand);
 }
+.warn {
+  color: var(--brand-ink) !important;
+  font-weight: 500;
+}
+.act label {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.act input {
+  width: 100%;
+  max-width: 20rem;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  font: inherit;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+}
+.act input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+  border-color: var(--brand);
+}
+.act--danger .btn {
+  justify-self: start;
+}
 
-/* ── Error ───────────────────────────────────────────────────────────── */
+/* ── The intro screen ────────────────────────────────────────────────────── */
+
+.intro {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: clamp(32px, 6vw, 72px) var(--pad) clamp(40px, 6vw, 72px);
+}
+.intro-card {
+  padding: clamp(22px, 3vw, 32px);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+}
+.intro-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.intro-mark {
+  flex: none;
+  margin-top: 4px;
+}
+.intro-head h1 {
+  font-size: clamp(22px, 3vw, 28px);
+  margin-bottom: 4px;
+}
+.intro-sub {
+  color: var(--text-2);
+}
+.intro-card .flow {
+  margin-bottom: 22px;
+}
+.gbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 15.5px;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+.gbtn:hover {
+  border-color: var(--ink);
+  background: var(--ground);
+}
+.gbtn__g {
+  display: block;
+}
+.intro-note {
+  margin-top: 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+  text-align: center;
+}
+.intro-foot {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.intro-foot a {
+  color: var(--muted);
+}
+.intro-foot a:hover {
+  color: var(--ink);
+}
+
+/* ── Errors ──────────────────────────────────────────────────────────────── */
 
 .panel--error {
-  max-width: min(34rem, calc(100% - var(--pad) * 2));
-  margin: clamp(56px, 12vw, 120px) auto;
-  padding: clamp(28px, 4vw, 40px);
-  border: 1px solid var(--line);
-  background: var(--sunk);
-  border-left: 2px solid var(--alert);
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding: clamp(56px, 12vh, 140px) var(--pad) 96px;
 }
 .err-code {
-  margin: 0 0 10px;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  color: var(--alert);
+  font-size: clamp(56px, 12vw, 110px);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--line-2);
+  margin-bottom: 8px;
 }
 .panel--error h1 {
-  margin: 0 0 18px;
-  font-size: clamp(19px, 2.6vw, 24px);
-  line-height: 1.35;
-}
-.err-back {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: clamp(24px, 4vw, 34px);
+  margin-bottom: 18px;
 }
 .err-back a {
-  color: var(--muted);
-  text-decoration: none;
-  border-bottom: 1px solid var(--line-2);
-}
-.err-back a:hover {
-  color: var(--text);
-  border-color: var(--muted);
+  font-weight: 500;
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────── */
+/* ── Footer ──────────────────────────────────────────────────────────────── */
 
 footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 24px;
   justify-content: space-between;
-  padding: 22px var(--gutter) 44px;
+  gap: 12px 28px;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding: 28px var(--pad) 44px;
   border-top: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
-
 footer a {
-  color: var(--note);
+  color: var(--muted);
   text-decoration: none;
-  transition: color 140ms ease;
 }
 footer a:hover {
-  color: var(--text);
+  color: var(--ink);
 }
-
+.foot-brand {
+  font-weight: 600;
+  color: var(--ink);
+}
 .langs {
   display: flex;
-  gap: 16px;
+  gap: 14px;
 }
-
-/* A language is not a country, so there is no flag here — each language is
-   written in itself, which is the only label someone looking for it recognises. */
 .lang--current {
-  color: var(--text);
-}
-.lang--current::before {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 8px;
-  background: var(--muted);
-  transform: rotate(45deg);
-  vertical-align: 1px;
+  color: var(--ink);
+  font-weight: 500;
 }
 
-/* ── Motion: one load sequence. Nothing loops. ───────────────────────── */
+/* ── Motion: the mark draws itself once. Nothing else moves on its own. ─── */
 
 .g-hex {
   stroke-dasharray: 560;
@@ -1026,7 +1000,6 @@ footer a:hover {
   transform-origin: 50% 50%;
   animation: cut 700ms cubic-bezier(0.65, 0, 0.2, 1) 700ms forwards;
 }
-
 @keyframes draw {
   to {
     stroke-dashoffset: 0;
@@ -1042,7 +1015,6 @@ footer a:hover {
     transform: scaleX(1);
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -1066,45 +1038,17 @@ footer a:hover {
   }
 }
 
-/* ── Ce que ce service ne défend pas ────────────────────────────────────
-   Découpée DANS la page plutôt que posée dessus : c'est la seule section qui
-   parle de ce qui manque, et elle doit se lire comme telle. Le liseré prend
-   `--alert`, pas `--brand` : c'est le seul endroit de cette page où un lecteur
-   a une raison de s'arrêter. */
-.limits {
-  margin-top: clamp(40px, 6vw, 68px);
-  padding: clamp(22px, 3vw, 32px) clamp(20px, 3vw, 30px);
-  background: var(--sunk);
-  border: 1px solid var(--line);
-  border-left: 2px solid color-mix(in srgb, var(--alert) 55%, var(--line));
-}
-.limit-list {
-  margin: 22px 0 0;
-}
-.limit-list dt {
-  margin-top: 20px;
-  font-family: var(--mono);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
-.limit-list dt:first-child { margin-top: 0; }
-.limit-list dd {
-  margin: 8px 0 0;
-  max-width: 68ch;
-  font-size: 14.5px;
-  line-height: 1.62;
-  color: var(--muted);
-}
+/* ── Narrow screens ──────────────────────────────────────────────────────── */
 
-/* Le renvoi vers la plateforme, en pied de page. Discret : c'est une
-   provenance, pas un appel à l'action — et c'est le seul lien sortant de ce
-   service, le bandeau n'en portant qu'un seul, vers l'accueil. */
-a.foot-brand {
-  color: var(--muted);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-a.foot-brand:hover {
-  color: var(--text);
+@media (max-width: 560px) {
+  .topbar {
+    gap: 12px;
+  }
+  .topnav {
+    gap: 12px;
+    font-size: 14px;
+  }
+  .hero-mark {
+    width: 170px;
+  }
 }
