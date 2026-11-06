@@ -160,7 +160,10 @@
 .opsid-signin--court::before {
   grid-row: 1;
 }
-.opsid-signin--court::after {
+/* `:lang(fr)` compté aussi : sans lui, la règle de traduction plus haut est
+   plus spécifique et remet la mention sur une page française. */
+.opsid-signin--court::after,
+.opsid-signin--court:lang(fr)::after {
   content: none;
 }
 
