@@ -476,9 +476,9 @@ qu'elle était le seul endroit où l'expliquer ; l'écran d'introduction montre
 désormais le mécanisme partie par partie à la première connexion, donc le
 bouton annonce et l'écran explique.
 
-Au survol, un filet vermillon paraît au bord bas, du centre vers les côtés :
-c'est la barre qui traverse l'hexagone du logo, empruntée plutôt qu'inventée,
-et le seul mouvement du contrôle.
+Au survol, un filet violet paraît au bord bas, du centre vers les côtés :
+c'est la couleur du losange de l'emblème, étirée, empruntée plutôt
+qu'inventée, et le seul mouvement du contrôle.
 
 **Ne le recopiez pas.** Un bouton que chaque application redessine dérive, et un
 bouton qui dérive n'est plus un repère — c'est tout l'intérêt de le servir d'ici.

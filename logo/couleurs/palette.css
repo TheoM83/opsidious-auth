@@ -1,0 +1,16 @@
+/* Opsidious — jetons de couleur */
+:root {
+  --ink: #0B0D12;        /* Encre — fond principal, texte, bandes noires */
+  --panel: #1A1F27;      /* Panneau — surfaces sur encre */
+  --paper: #ECEEF1;      /* Papier — fond des documents */
+  --mist: #E3E7EE;       /* Brume — texte et bandes sur encre */
+  --slate: #4A525F;      /* Ardoise — texte secondaire sur papier */
+  --stone: #9AA4B2;      /* Gris pierre — légendes, sur encre uniquement */
+  --accent: #8A6CFF;     /* Violet — accent principal (par défaut) */
+  --accent-teal: #3DD6C4;
+  --accent-orange: #E8622C;
+  --accent-rouge: #D94A5E;
+
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-text: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}

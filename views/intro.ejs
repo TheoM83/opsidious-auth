@@ -9,18 +9,16 @@
 <article class="intro">
   <div class="intro-card">
     <header class="intro-head">
-      <img class="intro-mark" src="<%= asset('/mark.svg') %>" alt="" width="30" height="30" />
+      <img class="intro-mark" src="<%= asset('/mark.svg') %>" alt="" width="36" height="27" />
       <div>
         <h1><%= t('intro.h1') %></h1>
         <p class="intro-sub"><%= t('intro.sub') %></p>
       </div>
     </header>
 
-    <%# Le logo est un hexagone traversé par une barre. La chaîne est exactement
-        ça — un trajet à travers quelque chose — donc elle est dessinée comme
-        telle : un fil vermillon relie les trois parties, et chacune est un
-        point dessus. Le motif vient de la marque, pas d'un catalogue de
-        composants. %>
+    <%# Trois parties, et pour chacune ce qu'elle voit puis ce qu'elle ne voit
+        pas. La seconde ligne est la seule en rouge : c'est elle qui distingue
+        ce service d'une connexion Google ordinaire. %>
     <%# Les deux lignes disent des choses opposées, et sans étiquette la seule
         chose qui les distingue est le rouge contre le gris — invisible pour
         qui ne distingue pas les deux, et pour qui lit à voix haute. Ce qui est

@@ -1,18 +1,54 @@
-OPSIDIOUS — Pack logo
-=====================
+OPSIDIOUS — IDENTITÉ VISUELLE
+=============================
 
-svg/
-  opsidious-logo-complet.svg              Logo + OPSIDIOUS, fond transparent (texte clair : pour fonds sombres)
-  opsidious-logo-complet-fond-sombre.svg  Logo + OPSIDIOUS sur fond sombre (#0d0d10)
-  opsidious-icone.svg                     Emblème hexagonal seul, fond transparent
-  opsidious-icone-fond-sombre.svg         Emblème seul sur fond sombre
+Contenu de l'archive
+--------------------
+opsidious-applications.html   Présentation complète de l'identité (logo, couleurs,
+                              typographies, applications). Fonctionne hors ligne :
+                              les polices sont incluses dans le fichier.
+logo/svg/                     Logos vectoriels (logotype converti en tracés).
+logo/png/                     Logos PNG à fond transparent, en plusieurs tailles.
+icones/                       Icône d'application (SVG et PNG), favicon, icône iOS.
+fichiers/                     Polices : Space Grotesk et Inter, en variable (woff2)
+                              et en TTF statiques (Regular, Medium, SemiBold, Bold).
+                              Textes de licence : OFL-SpaceGrotesk.txt, OFL-Inter.txt.
+couleurs/                     Palette en CSS (palette.css) et en JSON (palette.json).
 
-png/icone/          16, 32, 48, 64, 128, 256, 512, 1024 px (transparent)
-                    + versions fond sombre en 256, 512, 1024 px (avatars, favicons)
+Logos
+-----
+- Horizontal : version principale. Vertical : pour les formats carrés ou étroits.
+- Symbole seul : pour les usages très petits (favicon, avatar, tampon).
+- Logotype seul : quand le nom est déjà présent autrement.
+- Suffixe "noir" : pour fond clair. Suffixe "blanc" : pour fond sombre.
+- Zone de protection : un losange de hauteur minimum autour du logo.
+- Taille minimale : 120 px de large à l'écran, 30 mm en impression ; symbole seul 24 px / 8 mm.
+- Le losange est le seul élément coloré. Ne pas étirer ni modifier les proportions.
 
-png/logo-complet/   512, 1024, 2048 px de large, transparent et fond sombre
+Couleurs
+--------
+Encre        #0B0D12   RVB 11 13 18     Fond principal, texte, bandes noires
+Panneau      #1A1F27   RVB 26 31 39     Surfaces sur fond encre
+Papier       #ECEEF1   RVB 236 238 241  Fond des documents
+Brume        #E3E7EE   RVB 227 231 238  Texte et bandes sur fond encre
+Ardoise      #4A525F   RVB 74 82 95     Texte secondaire sur papier
+Gris pierre  #9AA4B2   RVB 154 164 178  Légendes, sur encre uniquement
+Violet       #8A6CFF   RVB 138 108 255  Accent principal (par défaut)
+Teal         #3DD6C4   RVB 61 214 196   Accent alternatif
+Orange       #E8622C   RVB 232 98 44    Accent alternatif
+Rouge        #D94A5E   RVB 217 74 94    Accent alternatif
 
-Notes :
-- Le texte du logo complet est quasi blanc : les versions "transparent"
-  sont à utiliser uniquement sur fond sombre.
-- Les SVG restent la source vectorielle : redimensionnables sans perte.
+Accessibilité : le violet sur papier (3,2:1) et la brume sur violet (3,0:1) sont
+insuffisants pour du texte courant. Écrire en encre sur fond violet (5,3:1).
+
+Typographies
+------------
+Titres et logotype : Space Grotesk (SemiBold 600 pour les titres).
+Texte et interface : Inter (Regular 400 pour le corps, Medium 500 pour les légendes).
+Les deux sont sous licence SIL Open Font License 1.1 : usage libre, y compris commercial,
+à condition de conserver les textes de licence avec les fichiers.
+
+Notes
+-----
+Les liens de la page renvoient aux dossiers de cette archive : garder la page
+à la racine, à côté des dossiers logo/, icones/, fichiers/ et couleurs/.
+Les champs entre crochets ([Prénom Nom], [email], etc.) sont des exemples à remplacer.

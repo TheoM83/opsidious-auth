@@ -58,11 +58,13 @@ async function shoot(chrome, profile, query, out) {
         `--user-data-dir=${profile}`,
         `--window-size=${WIDTH},${HEIGHT}`,
         '--force-device-scale-factor=1',
-        // The card loads its two typefaces over the network, and a screenshot
-        // taken before they arrive is the fallback stack — visibly wrong, and
-        // wrong in a way that only shows up once the card is already live on
-        // somebody else's timeline. Virtual time runs the page's clock forward
-        // and only then captures.
+        // The card reads its typefaces and logo from the repository, over
+        // file://, which Chrome refuses by default.
+        '--allow-file-access-from-files',
+        // A screenshot taken before the faces load is the fallback stack —
+        // visibly wrong, and wrong in a way that only shows up once the card
+        // is already live on somebody else's timeline. Virtual time runs the
+        // page's clock forward and only then captures.
         '--virtual-time-budget=8000',
         `--screenshot=${fileURLToPath(out)}`,
         url.href

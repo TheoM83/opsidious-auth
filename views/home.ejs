@@ -3,9 +3,10 @@
     c'est de MONTRER le mécanisme, partie par partie, puis de dire où aller le
     vérifier soi-même.
 
-    Le motif est celui de la marque : un hexagone traversé par une barre. La
-    barre est la coupure, et elle ne paraît qu'à trois endroits — dans
-    l'emblème, comme fil de la chaîne, et comme axe de la dérivation. %>
+    Le motif est celui de la marque : deux bandes qui se referment sur un
+    losange. Le losange est la seule partie colorée du logo, et c'est ce qui est
+    gardé : il paraît dans l'emblème, en puce des surtitres, et nulle part
+    ailleurs en violet sans raison. %>
 
 <section class="hero">
   <div class="hero-text">
@@ -19,13 +20,11 @@
   </div>
 
   <div class="hero-mark" aria-hidden="true">
-    <svg viewBox="0 0 290 290" class="glyph" role="presentation">
-      <polygon class="g-hex" points="145,50 223,95 223,185 145,230 67,185 67,95" />
-      <polygon class="g-hex-in" points="145,80 197,110 197,170 145,200 93,170 93,110" />
-      <rect class="g-bar-soft" x="52" y="132" width="186" height="16" />
-      <rect class="g-bar" x="52" y="138" width="186" height="4" />
-      <polygon class="g-tick" points="145,86 140,96 150,96" />
-      <polygon class="g-tick" points="145,194 140,184 150,184" />
+    <svg viewBox="-6 0 132 120" class="glyph" role="presentation">
+      <path class="g-halo" d="M60,30 L78,60 L60,90 L42,60 Z" />
+      <path class="g-band g-band--top" d="M4,58 L60,18 L116,58 L60,38 Z" />
+      <path class="g-band g-band--bottom" d="M4,62 L60,102 L116,62 L60,82 Z" />
+      <path class="g-eye" d="M60,42 L68,60 L60,78 L52,60 Z" />
     </svg>
   </div>
 </section>
@@ -35,7 +34,7 @@
 
   <%# Chaque partie dit ce qu'elle voit ET ce qu'elle ne voit pas. La seconde
       moitié est celle qui compte : c'est elle qui distingue ce service d'une
-      connexion Google ordinaire, donc c'est la seule à porter du vermillon. %>
+      connexion Google ordinaire, donc c'est la seule à porter du rouge. %>
   <ol class="flow">
     <% ['google', 'opsidious', 'application'].forEach(function (key) { %>
       <li>

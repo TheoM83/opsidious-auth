@@ -1,0 +1,23 @@
+{
+  "name": "Opsidious",
+  "colors": {
+    "ink": "#0B0D12",
+    "panel": "#1A1F27",
+    "paper": "#ECEEF1",
+    "mist": "#E3E7EE",
+    "slate": "#4A525F",
+    "stone": "#9AA4B2",
+    "accent": {
+      "default": "#8A6CFF",
+      "alternatives": {
+        "teal": "#3DD6C4",
+        "orange": "#E8622C",
+        "rouge": "#D94A5E"
+      }
+    }
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "text": "Inter"
+  }
+}
