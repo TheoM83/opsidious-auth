@@ -95,6 +95,8 @@ jobs:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SERVER_HOST }}
           SSH_USER: ${{ secrets.SERVER_USERNAME }}
+          CF_ACCESS_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           MASTER_KEY: ${{ secrets.MASTER_KEY }}
@@ -164,7 +166,27 @@ jobs:
           umask 077
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # Le serveur n'a pas d'adresse publique stable (elle a changé le
+          # 26/10 et a cassé ce déploiement). SERVER_HOST vaut donc
+          # ssh.opsidious.com, servi par le tunnel Cloudflare de mercury, et
+          # la connexion passe par `cloudflared access ssh`. ssh-keyscan ne
+          # traverse pas ce proxy : la clé d'hôte est épinglée ici, sous un
+          # alias, ce qui reste une vérification et pas une confiance aveugle.
+          curl -fsSL -o /tmp/cloudflared \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
+          echo "mercury ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDQyqTQfEZd9kj+Lr3zaX/OzK1TG4pC0AR9uQeVhvKg9" >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config <<EOF
+          Host $SSH_HOST
+            HostKeyAlias mercury
+            ProxyCommand cloudflared access ssh --hostname %h
+          EOF
+          # Le jeton de service de l'application Cloudflare Access qui garde
+          # ssh.opsidious.com. cloudflared le lit dans ces deux variables.
+          if [ -n "${CF_ACCESS_ID:-}" ]; then
+            export TUNNEL_SERVICE_TOKEN_ID="$CF_ACCESS_ID"
+            export TUNNEL_SERVICE_TOKEN_SECRET="$CF_ACCESS_SECRET"
+          fi
 
           cat > secrets.env <<EOF
           GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
