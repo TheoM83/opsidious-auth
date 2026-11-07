@@ -324,6 +324,13 @@ main li a:hover {
 .brand img {
   display: block;
 }
+.brand-word {
+  letter-spacing: -0.025em;
+}
+.brand-auth {
+  font-weight: 500;
+  color: #6a4be0;
+}
 .topnav {
   display: flex;
   align-items: center;
@@ -384,16 +391,18 @@ main {
   height: auto;
   overflow: visible;
 }
-/* The mark, drawn large: two bands closing on the diamond. */
-.g-band {
+/* The Opsidious Auth symbol, drawn large: the A in ink, the keyhole in the
+   violet that holds its contrast on a light page, and a soft glow behind it. */
+.g-letter {
   fill: var(--ink);
 }
-.g-eye {
-  fill: var(--mark);
+.g-key {
+  fill: #6a4be0;
 }
-.g-halo {
+.g-glow {
   fill: var(--mark);
-  opacity: 0.14;
+  opacity: 0.16;
+  filter: blur(10px);
 }
 
 /* Bands: each section below the hero. Odd ones sit on the pale ground. */
@@ -1031,30 +1040,30 @@ footer a:hover {
   font-weight: 500;
 }
 
-/* ── Motion: the mark closes once on its diamond. Nothing else moves. ──── */
+/* ── Motion: the A rises once, then the keyhole lights. Nothing else moves. */
 
-.g-band,
-.g-eye,
-.g-halo {
+.g-letter,
+.g-key,
+.g-glow {
   transform-box: fill-box;
-  transform-origin: 50% 50%;
+  transform-origin: 50% 100%;
 }
-.g-band--top {
+.g-letter {
   opacity: 0;
-  transform: translateY(-14%);
-  animation: lid 800ms cubic-bezier(0.6, 0, 0.2, 1) 120ms forwards;
+  transform: translateY(10%);
+  animation: rise 800ms cubic-bezier(0.2, 0.7, 0.2, 1) 120ms forwards;
 }
-.g-band--bottom {
-  opacity: 0;
-  transform: translateY(14%);
-  animation: lid 800ms cubic-bezier(0.6, 0, 0.2, 1) 120ms forwards;
-}
-.g-eye,
-.g-halo {
+.g-key {
+  transform-origin: 50% 30%;
   transform: scale(0);
-  animation: open 600ms cubic-bezier(0.3, 1.4, 0.5, 1) 760ms forwards;
+  animation: open 600ms cubic-bezier(0.3, 1.4, 0.5, 1) 700ms forwards;
 }
-@keyframes lid {
+.g-glow {
+  transform-origin: 50% 50%;
+  opacity: 0;
+  animation: glow 900ms ease 900ms forwards;
+}
+@keyframes rise {
   to {
     opacity: 1;
     transform: none;
@@ -1063,6 +1072,11 @@ footer a:hover {
 @keyframes open {
   to {
     transform: scale(1);
+  }
+}
+@keyframes glow {
+  to {
+    opacity: 0.16;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1075,12 +1089,13 @@ footer a:hover {
     transition: none !important;
     animation: none !important;
   }
-  .g-band--top,
-  .g-band--bottom,
-  .g-eye,
-  .g-halo {
+  .g-letter,
+  .g-key {
     opacity: 1;
     transform: none;
+  }
+  .g-glow {
+    opacity: 0.16;
   }
 }
 
@@ -1096,5 +1111,12 @@ footer a:hover {
   }
   .hero-mark {
     width: 170px;
+  }
+}
+/* On a phone the wordmark and the account link fill the bar; the link to the
+   platform stays in the footer. */
+@media (max-width: 440px) {
+  .topnav .btn--ghost {
+    display: none;
   }
 }

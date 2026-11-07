@@ -9,9 +9,10 @@
  *   <link rel="stylesheet" href="https://auth.opsidious.com/button.css">
  *   <a class="opsid-signin" href="/auth/opsidious">Continuer avec Opsidious</a>
  *
- * Une seule couleur, le VIOLET (#8A6CFF), comme dans toute l'identité
- * Opsidious : le losange de l'emblème, le filet de survol et l'anneau de focus.
- * Le reste est encre et brume. Ce bouton atterrit dans des applications tierces
+ * L'emblème est le symbole d'Opsidious Auth : un A dont la traverse est une
+ * serrure. Une seule couleur, le VIOLET (#8A6CFF), comme dans toute l'identité
+ * Opsidious : la serrure, le filet de survol et l'anneau de focus. Le reste est
+ * encre et brume. Ce bouton atterrit dans des applications tierces
  * où il est parfois la seule chose d'Opsidious que quelqu'un verra jamais ; il
  * doit donc porter la marque telle quelle, pas une variante.
  *
@@ -30,7 +31,7 @@
   --opsid-text: #e3e7ee;
   --opsid-note: #9aa4b2;
   --opsid-accent: #8a6cff;
-  --opsid-mark: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%224%2018%20112%2084%22%3E%3Cpath%20fill%3D%22%23E3E7EE%22%20d%3D%22M4%2C58%20L60%2C18%20L116%2C58%20L60%2C38%20Z%20M4%2C62%20L60%2C102%20L116%2C62%20L60%2C82%20Z%22%2F%3E%3Cpath%20fill%3D%22%238A6CFF%22%20d%3D%22M60%2C42%20L68%2C60%20L60%2C78%20L52%2C60%20Z%22%2F%3E%3C%2Fsvg%3E');
+  --opsid-mark: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%226%206%20108%20102%22%3E%3Cpath%20fill%3D%22%23E3E7EE%22%20d%3D%22M60%206%20L114%20108%20L86%20108%20L60%2046%20L34%20108%20L6%20108%20Z%22%2F%3E%3Cpath%20fill%3D%22%238A6CFF%22%20d%3D%22M60%2066%20A10%2010%200%200%201%2065.8%2084.14%20L69.5%20101%20L50.5%20101%20L54.2%2084.14%20A10%2010%200%200%201%2060%2066%20Z%22%2F%3E%3C%2Fsvg%3E');
 
   /* Une grille de deux lignes plutôt qu'un rang avec la mention en absolu :
      l'emblème occupe les deux lignes, donc il se centre tout seul sur le bloc
@@ -68,13 +69,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* L'emblème : deux bandes et le losange. Embarqué, donc aucune requête et
-   aucun fichier à héberger. Il enjambe les deux lignes : c'est ce qui le
-   centre. */
+/* L'emblème : le A et sa serrure. Embarqué, donc aucune requête et aucun
+   fichier à héberger. Il enjambe les deux lignes : c'est ce qui le centre. */
 .opsid-signin::before {
   content: '';
   grid-row: 1 / span 2;
-  width: 28px;
+  width: 22px;
   height: 21px;
   background: var(--opsid-mark) center / contain no-repeat;
 }
@@ -116,7 +116,7 @@
 }
 
 /* Au survol, un filet violet paraît au bord bas, du centre vers les côtés :
-   la couleur du losange, étirée. Un seul geste, tiré de la marque plutôt
+   la couleur de la serrure, étirée. Un seul geste, tiré de la marque plutôt
    qu'inventé — et le seul mouvement du contrôle, ce qui le rend perceptible
    sans être décoratif. */
 .opsid-signin {
@@ -168,7 +168,8 @@
 }
 
 /* Une application claire hérite du même bouton sans le redéclarer : fond
-   blanc, bandes encre, losange violet. */
+   blanc, A encre, serrure violette (#6A4BE0, qui tient son contraste sur
+   fond clair). */
 @media (prefers-color-scheme: light) {
   .opsid-signin:not(.opsid-signin--sombre) {
     --opsid-bg: #ffffff;
@@ -177,7 +178,7 @@
     --opsid-line-hover: #b9bfca;
     --opsid-text: #0b0d12;
     --opsid-note: #4a525f;
-    --opsid-mark: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%224%2018%20112%2084%22%3E%3Cpath%20fill%3D%22%230B0D12%22%20d%3D%22M4%2C58%20L60%2C18%20L116%2C58%20L60%2C38%20Z%20M4%2C62%20L60%2C102%20L116%2C62%20L60%2C82%20Z%22%2F%3E%3Cpath%20fill%3D%22%238A6CFF%22%20d%3D%22M60%2C42%20L68%2C60%20L60%2C78%20L52%2C60%20Z%22%2F%3E%3C%2Fsvg%3E');
+    --opsid-mark: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%226%206%20108%20102%22%3E%3Cpath%20fill%3D%22%230B0D12%22%20d%3D%22M60%206%20L114%20108%20L86%20108%20L60%2046%20L34%20108%20L6%20108%20Z%22%2F%3E%3Cpath%20fill%3D%22%236A4BE0%22%20d%3D%22M60%2066%20A10%2010%200%200%201%2065.8%2084.14%20L69.5%20101%20L50.5%20101%20L54.2%2084.14%20A10%2010%200%200%201%2060%2066%20Z%22%2F%3E%3C%2Fsvg%3E');
   }
 }
 

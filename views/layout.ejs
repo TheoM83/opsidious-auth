@@ -63,8 +63,10 @@
         reste vraie. %>
     <header class="topbar">
       <a class="brand" href="/" aria-label="<%= t('common.homeAria') %>">
-        <img src="<%= asset('/mark.svg') %>" alt="" width="30" height="23" />
-        <span><%= t('common.brand') %></span>
+        <%# The identity's wordmark, set as text: "opsidious" at 600, "auth" at
+            500 in the keyhole's violet. It is a name, so it is not translated. %>
+        <img src="<%= asset('/mark.svg') %>" alt="" width="30" height="28" />
+        <span class="brand-word">opsidious <span class="brand-auth">auth</span></span>
       </a>
       <%# Two destinations on the right: the account page, which is the whole
           point of this service, and the platform it belongs to. %>
