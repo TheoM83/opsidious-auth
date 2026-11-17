@@ -542,6 +542,21 @@ main {
   height: auto;
   font-family: var(--mono);
 }
+.dia-tall {
+  display: none;
+}
+@media (max-width: 599px) {
+  /* Upright on a phone: no sideways scroll, nothing looks cut off. */
+  .figure-scroll > .dia:not(.dia-tall) {
+    display: none;
+  }
+  .dia-tall {
+    display: block;
+    min-width: 0;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+}
 figcaption {
   margin-top: 12px;
   font-size: 14px;
